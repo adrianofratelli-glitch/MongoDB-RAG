@@ -1,0 +1,10 @@
+streamlit
+pymongo
+voyageai
+langchain-core
+langchain-anthropic
+langchain-community
+langchain-text-splitters
+langgraph
+python-dotenv
+pypdf

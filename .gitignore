@@ -1,0 +1,9 @@
+# Ambientes Virtuais e Cache
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+# Variáveis de Ambiente (MUITO IMPORTANTE)
+.env
+.env.local
