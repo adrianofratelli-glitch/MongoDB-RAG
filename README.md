@@ -9,57 +9,31 @@ Este projeto serve como um *boilerplate* (modelo base) escalável, podendo ser a
 O fluxo de dados da aplicação segue o design pattern de agentes baseados em grafos de estado, garantindo rastreabilidade, velocidade via streaming e tratamento rigoroso do contexto:
 
 ```mermaid
+
 graph TD
+
     User([👤 Usuário]) <-->|1. Chat / Prompt| ST[💻 Streamlit Frontend]
+
     ST <-->|2. Envia Mensagem / Atualiza UI| LG[🔗 LangGraph Agent Orchestrator]
+
     LG <-->|3. Persiste Sessão / Checkpoints| MG_DB[(🍃 MongoDB Atlas Database)]
+
     
+
     subgraph Pipeline RAG Avançado
+
         LG -->|4. Vetoriza Query| V_Emb[🔢 VoyageAI: voyage-3]
+
         V_Emb -->|5. Procura Chunks| MG_Search[🔍 MongoDB Vector Search]
+
         MG_Search -->|6. Retorna Candidatos| V_Rnk[🎯 VoyageAI: rerank-2]
+
         V_Rnk -->|7. Contexto Reordenado| LG
+
     end
+
     
+
     LG -->|8. Prompt + Contexto Limpo| Claude[🤖 Anthropic Claude 3.5 Sonnet]
+
     Claude -->|9. Token Streaming| ST
-```
-
-## ✨ Principais Funcionalidades
-- **Busca Semântica Avançada:** Utiliza MongoDB Atlas Vector Search aliado ao modelo de Embeddings da VoyageAI para recuperar trechos relevantes.
-- **Reranking:** Refinamento dos resultados usando o `rerank-2` da VoyageAI, garantindo que o LLM receba o melhor contexto possível, diminuindo drasticamente as alucinações.
-- **Memória Persistente (Checkpointer):** Implementação de grafos de estado com **LangGraph**, permitindo que o agente lembre do histórico da conversa e recupere sessões passadas direto do MongoDB.
-- **Formatação Rica e Streaming:** Respostas geradas em tempo real pelo Claude 3.5 Sonnet, estruturando dados em tabelas Markdown.
-
-## 🛠️ Stack Tecnológica
-- **Interface:** Streamlit
-- **Banco de Dados & Vector Store:** MongoDB Atlas
-- **Embeddings & Reranker:** VoyageAI (`voyage-3` e `rerank-2`)
-- **LLM:** Anthropic Claude 3.5 Sonnet
-- **Orquestração de Agentes:** LangGraph & LangB�ain
-
-## 🚀 Como rodar localmente
-
-1. Clone o repositório:
-```bash
-git clone https://github.com/adrianofratelli-glitch/MongoDB-RAG.git
-cd MongoDB-RAG
-```
-
-2. Crie e ative um ambiente virtual:
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-```
-
-3. Instale as dependências:
-```bash
-pip install -r requirements.txt
-```
-
-4. Configure as variáveis de ambiente baseando-se no `.env.example`.
-
-5. Inicie a aplicação:
-```bash
-streamlit run app.py
-```
