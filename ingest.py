@@ -70,4 +70,4 @@ def ingest_pdf(pdf_path: str):
     client.close()
 
 if __name__ == "__main__":
-    ingest_pdf("PDTIC_2025_2027.pdf")
+    ingest_pdf("data/PDTIC_2025_2027.pdf")
