@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import Banner from '@leafygreen-ui/banner'
 import Button from '@leafygreen-ui/button'
 import { Body } from '@leafygreen-ui/typography'
-import { getConfig, getStatus, streamChat } from './api'
+import { getConfig, getStatus, getHistory, streamChat } from './api'
 import Sidebar from './components/Sidebar'
 import TopBar from './components/TopBar'
 import KpiRow from './components/KpiRow'
@@ -24,6 +24,7 @@ export default function App() {
   const [totalQueries, setTotalQueries] = useState(0)
   const [error, setError] = useState(null)
   const [reconnecting, setReconnecting] = useState(false)
+  const [accessLevel, setAccessLevel] = useState('restrito') // 'publico' | 'restrito'
   const endRef = useRef(null)
 
   useEffect(() => {
@@ -54,7 +55,7 @@ export default function App() {
     setStreaming(true)
 
     await streamChat(
-      { question, messages: history },
+      { question, messages: history, threadId, accessLevel },
       {
         onMeta: (evt) =>
           setMessages((prev) => {
@@ -97,10 +98,17 @@ export default function App() {
     setTotalQueries(0)
     setError(null)
   }
-  const resume = (id) => {
-    setThreadId(id)
-    setMessages([])
-    setTotalQueries(0)
+  const resume = async (id) => {
+    setError(null)
+    try {
+      const hist = await getHistory(id)
+      setThreadId(id)
+      setMessages(hist)
+      setTotalQueries(hist.filter((m) => m.role === 'user').length)
+      if (hist.length === 0) setError('Nenhuma conversa encontrada para esse Thread ID.')
+    } catch {
+      setError('Não foi possível retomar a conversa.')
+    }
   }
 
   if (!config) {
@@ -121,6 +129,8 @@ export default function App() {
         messages={messages}
         onResume={resume}
         onNewChat={newChat}
+        accessLevel={accessLevel}
+        onAccessLevel={setAccessLevel}
       />
       <main className="main">
         <TopBar config={config} online={status.online} onRefresh={() => refreshStatus(true)} />

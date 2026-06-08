@@ -8,10 +8,22 @@ function SourceCard({ i, s }) {
   if (pct >= 85) fill = C.green
   else if (pct >= 65) fill = '#F97316'
   const label = `Página ${s.page}${s.source ? ` · ${s.source}` : ''}`
+  const matched = s.matched_by || []
+  const restrito = s.nivel_acesso === 'restrito'
+  const chip = (txt, color) => (
+    <span style={{ fontSize: 9, fontWeight: 700, color, border: `1px solid ${color}55`, borderRadius: 4, padding: '0 5px', textTransform: 'uppercase', letterSpacing: 0.4 }}>
+      {txt}
+    </span>
+  )
   return (
     <div className="src-card">
       <div className="src-head">
-        <span style={{ color: C.muted }}>#{i} · {label}</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ color: C.muted }}>#{i} · {label}</span>
+          {matched.includes('vetorial') && chip('vetorial', C.green)}
+          {matched.includes('léxico') && chip('léxico', '#3D9BFF')}
+          {restrito && chip('restrito', '#F5C518')}
+        </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ color: C.sub }}>vetorial {vpct}%</span>
           <span style={{ color: C.muted }}>→</span>
@@ -35,7 +47,7 @@ export default function Sources({ sources }) {
   return (
     <div style={{ marginTop: 10 }}>
       <ExpandableCard
-        title={`${sources.length} fonte(s) · MongoDB Atlas Vector Search`}
+        title={`${sources.length} fonte(s) · MongoDB Atlas Hybrid Search`}
         darkMode
       >
         {sources.map((s, i) => (

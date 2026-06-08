@@ -37,10 +37,49 @@ class AgentState(TypedDict):
     sources: List[dict]
 
 
-def retrieve_context(query: str, top_k: int = 15) -> tuple[str, list[dict], dict]:
+ALL_ACCESS = ["publico", "restrito"]
+RRF_K = 60  # constante padrão de Reciprocal Rank Fusion
+
+
+def _vector_pipeline(embedding, top_k, access_levels):
+    vs = {
+        "index": "vector_index",
+        "path": "embedding",
+        "queryVector": embedding,
+        "numCandidates": top_k * 15,
+        "limit": top_k,
+    }
+    if access_levels:
+        vs["filter"] = {"metadata.nivel_acesso": {"$in": access_levels}}
+    return [
+        {"$vectorSearch": vs},
+        {"$project": {"text": 1, "metadata": 1,
+                      "vector_score": {"$meta": "vectorSearchScore"}}},
+    ]
+
+
+def _lexical_pipeline(query, top_k, access_levels):
+    must = [{"text": {"query": query, "path": "text"}}]
+    flt = [{"in": {"path": "metadata.nivel_acesso", "value": access_levels}}] if access_levels else []
+    return [
+        {"$search": {"index": "text_index", "compound": {"must": must, "filter": flt}}},
+        {"$limit": top_k},
+        {"$project": {"text": 1, "metadata": 1,
+                      "search_score": {"$meta": "searchScore"}}},
+    ]
+
+
+def retrieve_context(query: str, top_k: int = 15,
+                     access_levels: list | None = None) -> tuple[str, list[dict], dict]:
+    """Hybrid search: busca vetorial ∪ léxica → RRF → rerank-2, com filtro de ACL.
+
+    access_levels: níveis de acesso permitidos (ex.: ["publico"]). None = acesso total.
+    """
     history_keywords = ["pergunt", "anterior", "sessão", "conversa", "falei", "histórico"]
     if any(k in query.lower() for k in history_keywords):
         return "Responda com base no histórico da conversa.", [], {}
+
+    levels = access_levels if access_levels else ALL_ACCESS
 
     voyage = voyageai.Client(api_key=os.environ["VOYAGE_API_KEY"])
     client = MongoClient(os.environ["MONGO_URI"])
@@ -48,51 +87,55 @@ def retrieve_context(query: str, top_k: int = 15) -> tuple[str, list[dict], dict
 
     embedding = voyage.embed([query], model="voyage-3", input_type="query").embeddings[0]
 
-    pipeline = [
-        {
-            "$vectorSearch": {
-                "index": "vector_index",
-                "path": "embedding",
-                "queryVector": embedding,
-                "numCandidates": top_k * 15,
-                "limit": top_k,
-            }
-        },
-        {
-            "$project": {
-                "text": 1,
-                "metadata": 1,
-                "vector_score": {"$meta": "vectorSearchScore"},
-                "_id": 0,
-            }
-        },
-    ]
-
-    results = list(collection.aggregate(pipeline))
+    # 1) Recupera das duas modalidades em paralelo conceitual (duas agregações)
+    vector_results = list(collection.aggregate(_vector_pipeline(embedding, top_k, levels)))
+    try:
+        lexical_results = list(collection.aggregate(_lexical_pipeline(query, top_k, levels)))
+    except Exception:
+        lexical_results = []  # tolerante: se o índice léxico falhar, segue só com vetorial
     client.close()
 
-    if not results:
+    # 2) Reciprocal Rank Fusion (RRF) — funde os dois rankings por _id
+    fused: dict = {}
+
+    def _fuse(rows, score_key, matched):
+        for rank, r in enumerate(rows, start=1):
+            key = str(r["_id"])
+            entry = fused.setdefault(key, {
+                "text": r["text"], "metadata": r["metadata"],
+                "vector_score": 0.0, "search_score": 0.0,
+                "rrf": 0.0, "matched_by": set(),
+            })
+            entry["rrf"] += 1.0 / (RRF_K + rank)
+            entry["matched_by"].add(matched)
+            if score_key in r and r[score_key] is not None:
+                entry[score_key] = round(float(r[score_key]), 4)
+
+    _fuse(vector_results, "vector_score", "vetorial")
+    _fuse(lexical_results, "search_score", "léxico")
+
+    if not fused:
         return "Nenhum contexto encontrado.", [], {}
 
-    documents = [r["text"] for r in results]
+    candidates = sorted(fused.values(), key=lambda x: x["rrf"], reverse=True)
+
+    # 3) Rerank-2 (VoyageAI) sobre o conjunto fundido
+    documents = [c["text"] for c in candidates]
     try:
-        rr = voyage.rerank(query, documents, model="rerank-2", top_k=8)
-        reranked_indices = [item.index for item in rr.results]
-        rerank_scores = {item.index: round(item.relevance_score, 4) for item in rr.results}
-        top_results = [results[i] for i in reranked_indices]
-        for i, r in enumerate(top_results):
-            r["rerank_score"] = rerank_scores[reranked_indices[i]]
-            r["vector_score"] = round(r.get("vector_score", 0), 4)
+        rr = voyage.rerank(query, documents, model="rerank-2", top_k=min(8, len(documents)))
+        top_results = []
+        for item in rr.results:
+            c = candidates[item.index]
+            c["rerank_score"] = round(item.relevance_score, 4)
+            top_results.append(c)
     except Exception:
-        top_results = results[:8]
-        for r in top_results:
-            r["rerank_score"] = round(r.get("vector_score", 0), 4)
-            r["vector_score"] = round(r.get("vector_score", 0), 4)
+        top_results = candidates[:8]
+        for c in top_results:
+            c["rerank_score"] = round(c.get("vector_score") or c.get("search_score") or 0, 4)
 
     parts = []
     sources = []
     seen_pages: set = set()
-
     for r in top_results:
         page = r["metadata"].get("page", "?")
         source = r["metadata"].get("source", "")
@@ -101,6 +144,8 @@ def retrieve_context(query: str, top_k: int = 15) -> tuple[str, list[dict], dict
             sources.append({
                 "page": page,
                 "source": source,
+                "nivel_acesso": r["metadata"].get("nivel_acesso", "publico"),
+                "matched_by": sorted(r["matched_by"]),
                 "vector_score": r.get("vector_score", 0),
                 "rerank_score": r.get("rerank_score", 0),
                 "preview": r["text"][:130],
@@ -108,13 +153,17 @@ def retrieve_context(query: str, top_k: int = 15) -> tuple[str, list[dict], dict
             seen_pages.add(page)
 
     stats = {
-        "num_candidates": top_k * 15,   # numCandidates do $vectorSearch
-        "vector_hits": len(results),    # docs retornados pela busca vetorial
-        "reranked": len(top_results),   # docs após rerank-2
-        "index": "vector_index",
+        "num_candidates": top_k * 15,        # numCandidates do $vectorSearch
+        "vector_hits": len(vector_results),  # retornados pela busca vetorial
+        "lexical_hits": len(lexical_results),  # retornados pela busca léxica (Atlas Search)
+        "fused": len(fused),                 # candidatos únicos após RRF
+        "reranked": len(top_results),        # após rerank-2
+        "index": "vector_index + text_index",
         "embed_model": "voyage-3",
         "rerank_model": "rerank-2",
         "embed_dim": len(embedding),
+        "access_levels": levels,
+        "hybrid": True,
     }
 
     return "\n\n---\n\n".join(parts), sources, stats

@@ -10,18 +10,28 @@ export async function getStatus(force = false) {
   return data
 }
 
+export async function getHistory(threadId) {
+  const { data } = await axios.get(`/api/history/${encodeURIComponent(threadId)}`)
+  return data.messages || []
+}
+
 /**
  * Stream do chat via SSE (fetch + ReadableStream).
  * handlers: { onMeta(evt), onToken(delta), onDone(), onError(msg) }
  */
-export async function streamChat({ question, messages }, handlers) {
+export async function streamChat({ question, messages, threadId, accessLevel }, handlers) {
   const { onMeta, onToken, onDone, onError } = handlers
   let res
   try {
     res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question, messages }),
+      body: JSON.stringify({
+        question,
+        messages,
+        thread_id: threadId,
+        access_level: accessLevel || 'restrito',
+      }),
     })
   } catch {
     onError?.('Não foi possível contatar a API. O backend está rodando?')

@@ -94,6 +94,9 @@ def ingest(file_path: str, reset: bool = False) -> None:
                     "file": path.name,
                     "page": batch_chunks[j].metadata.get("page", 0),
                     "chunk_id": i + j,
+                    # ACL: nível de acesso usado no filtro do $vectorSearch / Atlas Search.
+                    # Ajuste a regra conforme a sensibilidade do conteúdo do cliente.
+                    "nivel_acesso": "publico",
                 },
             })
 

@@ -119,6 +119,49 @@ def _sse(data: dict) -> str:
     return f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 
+# ── ACL: perfil de acesso → níveis permitidos ───────────────────────────────────
+def _levels_for(access_level: str) -> list:
+    # "publico" só vê público; "restrito" vê tudo (público + restrito)
+    return ["publico"] if access_level == "publico" else ["publico", "restrito"]
+
+
+# ── Memória de conversa persistida no MongoDB (mesma plataforma) ─────────────────
+def _save_conversation(thread_id, messages):
+    if not thread_id:
+        return
+    from pymongo import MongoClient
+    from datetime import datetime, timezone
+    try:
+        client = MongoClient(os.environ["MONGO_URI"], serverSelectionTimeoutMS=3500)
+        client[DB_NAME]["conversations"].update_one(
+            {"_id": thread_id},
+            {"$set": {
+                "client": CLIENT_NAME,
+                "document": DOCUMENT_TITLE,
+                "messages": messages,
+                "updated_at": datetime.now(timezone.utc),
+            }},
+            upsert=True,
+        )
+        client.close()
+    except Exception:
+        pass  # persistência nunca deve derrubar o chat
+
+
+def _load_conversation(thread_id):
+    from pymongo import MongoClient
+    try:
+        client = MongoClient(os.environ["MONGO_URI"], serverSelectionTimeoutMS=3500)
+        doc = client[DB_NAME]["conversations"].find_one({"_id": thread_id})
+        client.close()
+        if not doc:
+            return []
+        return [{"role": m.get("role"), "content": m.get("content")}
+                for m in doc.get("messages", [])]
+    except Exception:
+        return []
+
+
 # ── Endpoints ────────────────────────────────────────────────────────────────────
 @app.get("/api/config")
 def api_config():
@@ -143,7 +186,15 @@ def api_status(force: bool = False):
 
 class ChatBody(BaseModel):
     question: str
-    messages: list[dict] = []  # histórico anterior (sem a pergunta atual)
+    messages: list[dict] = []          # histórico anterior (sem a pergunta atual)
+    thread_id: str | None = None       # para persistir a conversa
+    access_level: str = "restrito"     # "publico" | "restrito" (perfil de acesso)
+
+
+@app.get("/api/history/{thread_id}")
+def api_history(thread_id: str):
+    """Retoma uma conversa persistida no MongoDB."""
+    return {"thread_id": thread_id, "messages": _load_conversation(thread_id)}
 
 
 @app.post("/api/chat")
@@ -164,7 +215,9 @@ def api_chat(body: ChatBody):
             return
         try:
             t0 = time.perf_counter()
-            context, sources, stats = retrieve_context(body.question)
+            context, sources, stats = retrieve_context(
+                body.question, access_levels=_levels_for(body.access_level)
+            )
             elapsed_ms = int((time.perf_counter() - t0) * 1000)
             yield _sse(
                 {
@@ -199,9 +252,19 @@ def api_chat(body: ChatBody):
                     ("human", body.question),
                 ]
             )
+            full = ""
             for chunk in llm.stream(prompt.format_messages()):
                 if chunk.content:
+                    full += chunk.content
                     yield _sse({"type": "token", "delta": chunk.content})
+
+            # Persiste a conversa no MongoDB (mesma plataforma dos vetores)
+            _save_conversation(
+                body.thread_id,
+                body.messages
+                + [{"role": "user", "content": body.question},
+                   {"role": "assistant", "content": full}],
+            )
             yield _sse({"type": "done"})
         except Exception as e:  # noqa: BLE001
             yield _sse(

@@ -32,7 +32,7 @@ function download(name, content, type) {
   URL.revokeObjectURL(url)
 }
 
-export default function Sidebar({ config, status, threadId, totalQueries, chunksRead, messages, onResume, onNewChat }) {
+export default function Sidebar({ config, status, threadId, totalQueries, chunksRead, messages, onResume, onNewChat, accessLevel, onAccessLevel }) {
   const [resumeId, setResumeId] = useState('')
   const online = status.online
   const slug = (threadId || '').slice(0, 8)
@@ -72,6 +72,39 @@ export default function Sidebar({ config, status, threadId, totalQueries, chunks
           <div style={{ fontSize: 10, fontWeight: 800, color: C.green, letterSpacing: 1.6, textTransform: 'uppercase', fontFamily: 'var(--mono)' }}>Proof of Concept</div>
           <div style={{ fontSize: 9, color: C.sub }}>Powered by MongoDB Atlas Vector Search</div>
         </div>
+      </div>
+
+      <div className="sb-divider" />
+
+      {/* Perfil de acesso (ACL) */}
+      <div className="sb-section-label" style={{ marginTop: 0 }}>Perfil de acesso</div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        {[
+          ['publico', 'Público'],
+          ['restrito', 'Restrito'],
+        ].map(([val, label]) => {
+          const active = accessLevel === val
+          return (
+            <button
+              key={val}
+              onClick={() => onAccessLevel?.(val)}
+              style={{
+                flex: 1, cursor: 'pointer', padding: '7px 0', borderRadius: 7,
+                fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700,
+                background: active ? greenLo : 'transparent',
+                color: active ? C.green : C.sub,
+                border: `1px solid ${active ? greenBd : 'rgba(255,255,255,0.08)'}`,
+              }}
+            >
+              {label}
+            </button>
+          )
+        })}
+      </div>
+      <div style={{ fontSize: 10, color: C.muted, marginTop: 6, lineHeight: 1.5 }}>
+        {accessLevel === 'publico'
+          ? 'Recupera apenas conteúdo público (filtro no $vectorSearch + Atlas Search).'
+          : 'Acesso total: inclui conteúdo restrito (segurança, financeiro).'}
       </div>
 
       <div className="sb-divider" />
