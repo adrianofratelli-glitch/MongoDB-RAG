@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <title>MongoDB Atlas Vector Search (POC)</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <!-- Polyfill: @leafygreen-ui/emotion -> @emotion/server -> html-tokenize espera Buffer (Node) -->
+    <script type="module">
+      import { Buffer } from 'buffer'
+      globalThis.Buffer = Buffer
+      globalThis.global = globalThis
+    </script>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+pymongo
+voyageai
+langchain-core
+langchain-anthropic
+langchain-community
+langchain-text-splitters
+langgraph
+langgraph-checkpoint-mongodb
+python-dotenv
+pypdf
+docx2txt

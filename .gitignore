@@ -1,0 +1,22 @@
+# Ambientes Virtuais e Cache
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+# Variáveis de Ambiente — NUNCA commitar
+.env
+.env.local
+
+# Documentos e assets dos clientes — dados sensíveis
+data/*
+!data/.gitkeep
+assets/*
+!assets/.gitkeep
+
+# Configuração específica do cliente (gerada a partir do example)
+client_config.json
+
+# Arquivos de backup do editor
+*.save
+

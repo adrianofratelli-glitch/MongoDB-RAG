@@ -1,0 +1,131 @@
+/* ===== Base global — POC MongoDB Atlas (dark) ===== */
+:root {
+  --bg: #001e2b;
+  --green: #00ed64;
+  --text: #e3f4f0;
+  --sub: #889397;
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+}
+
+body {
+  font-family: 'Euclid Circular A', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== Layout ===== */
+.app-shell { display: flex; min-height: 100vh; }
+.sidebar {
+  width: 290px;
+  flex-shrink: 0;
+  background: #00141c;
+  border-right: 1px solid rgba(0, 237, 100, 0.12);
+  padding: 20px 18px 28px;
+  overflow-y: auto;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+}
+.main {
+  flex: 1;
+  min-width: 0;
+  padding: 22px 30px 40px;
+  max-width: 1040px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.sb-section-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #3d4f58;
+  margin: 18px 2px 8px;
+}
+.sb-divider { height: 1px; background: rgba(255, 255, 255, 0.06); margin: 16px 0; }
+
+/* ===== KPI ===== */
+.kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
+.kpi-label { font-family: var(--mono); font-size: 9px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: #3d4f58; }
+.kpi-value { font-family: var(--mono); font-size: 24px; font-weight: 700; line-height: 1.1; margin-top: 6px; }
+.kpi-sub { font-family: var(--mono); font-size: 10.5px; color: var(--sub); margin-top: 5px; }
+
+/* ===== Status pill ===== */
+.status-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 11px; border-radius: 8px;
+  font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: 0.3px;
+}
+.status-pill.on { background: rgba(0, 237, 100, 0.1); border: 1px solid rgba(0, 237, 100, 0.3); color: var(--green); }
+.status-pill.off { background: rgba(255, 105, 96, 0.1); border: 1px solid rgba(255, 105, 96, 0.35); color: #ff6960; }
+.status-dot { width: 7px; height: 7px; border-radius: 50%; }
+.status-pill.on .status-dot { background: var(--green); box-shadow: 0 0 7px var(--green); animation: pulse 2.2s ease-in-out infinite; }
+.status-pill.off .status-dot { background: #ff6960; box-shadow: 0 0 7px #ff6960; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+/* ===== Engine strip ===== */
+.engine-strip {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: linear-gradient(100deg, rgba(0, 237, 100, 0.14) 0%, rgba(0, 237, 100, 0.02) 100%);
+  border: 1px solid rgba(0, 237, 100, 0.25);
+  border-radius: 9px; padding: 9px 14px; margin: 4px 0 12px;
+  font-family: var(--mono);
+}
+.engine-strip .hint { cursor: help; border-bottom: 1px dotted #3d4f58; }
+
+/* ===== Markdown (respostas) ===== */
+.md { font-size: 14px; line-height: 1.75; color: var(--text); }
+.md h1, .md h2, .md h3 { color: var(--green); font-weight: 700; line-height: 1.3; margin: 14px 0 6px; }
+.md h1 { font-size: 19px; } .md h2 { font-size: 16px; } .md h3 { font-size: 14.5px; }
+.md p { margin: 8px 0; }
+.md strong { color: var(--green); }
+.md ul, .md ol { margin: 8px 0; padding-left: 20px; }
+.md li { margin: 3px 0; }
+.md table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 13px; }
+.md th { background: #10323f; color: var(--green); text-transform: uppercase; font-size: 11px; letter-spacing: 0.06em; padding: 8px 12px; border: 1px solid rgba(0, 237, 100, 0.18); text-align: left; }
+.md td { padding: 8px 12px; border: 1px solid rgba(255, 255, 255, 0.07); }
+.md code { background: rgba(0, 237, 100, 0.1); color: var(--green); font-family: var(--mono); font-size: 12px; padding: 1px 6px; border-radius: 4px; }
+
+/* ===== Chat ===== */
+.chat-row { display: flex; gap: 12px; margin-bottom: 14px; align-items: flex-start; }
+.avatar {
+  width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.avatar.assistant { background: rgba(0, 237, 100, 0.1); border: 1px solid rgba(0, 237, 100, 0.25); }
+.avatar.user { background: #10323f; border: 1px solid rgba(255, 255, 255, 0.08); color: var(--sub); }
+
+/* ===== Source card ===== */
+.src-card { border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; background: rgba(0, 0, 0, 0.2); }
+.src-head { display: flex; justify-content: space-between; align-items: center; font-family: var(--mono); font-size: 10px; margin-bottom: 8px; }
+.src-track { height: 5px; background: rgba(255, 255, 255, 0.06); border-radius: 3px; overflow: hidden; }
+.src-fill { height: 100%; border-radius: 3px; }
+
+/* ===== Footer ===== */
+.mdb-footer { display: flex; align-items: center; justify-content: center; gap: 9px; margin: 36px 0 6px; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.06); }
+.mdb-footer-txt { font-family: var(--mono); font-size: 10px; letter-spacing: 1px; color: var(--sub); text-transform: uppercase; }
+.mdb-footer-txt strong { color: var(--green); }
+
+/* ===== Suggestions grid ===== */
+.sugg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+
+/* ===== Acessibilidade ===== */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+/* ===== Scrollbar ===== */
+::-webkit-scrollbar { width: 7px; height: 7px; }
+::-webkit-scrollbar-thumb { background: rgba(0, 237, 100, 0.2); border-radius: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
