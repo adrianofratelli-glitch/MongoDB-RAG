@@ -14,7 +14,9 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5173,
+    // Porta dedicada da POC TJGO — 5173 colide com outras POCs locais (Vite default).
+    port: 5180,
+    strictPort: true, // falha alto em vez de cair silenciosamente em outra porta
     host: true,
     proxy: {
       '/api': {

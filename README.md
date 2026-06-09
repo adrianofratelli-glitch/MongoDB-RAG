@@ -155,10 +155,10 @@ uvicorn backend.api:app --reload --port 8000
 ```bash
 cd frontend
 npm install        # primeira vez
-npm run dev        # abre em http://localhost:5173 (proxy /api -> :8000)
+npm run dev        # abre em http://localhost:5180 (proxy /api -> :8000)
 ```
 
-Abra **http://localhost:5173**. O frontend faz proxy de `/api` para o backend, sem CORS.
+Abra **http://localhost:5180**. O frontend faz proxy de `/api` para o backend, sem CORS.
 
 ---
 

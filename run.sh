@@ -2,7 +2,7 @@
 #
 # Inicia a POC localmente:
 #   - Backend  : API FastAPI  em http://localhost:8000
-#   - Frontend : React + Vite em http://localhost:5173  (proxy /api -> :8000)
+#   - Frontend : React + Vite em http://localhost:5180  (proxy /api -> :8000)
 #
 # Uso:  ./run.sh
 #
@@ -33,5 +33,5 @@ cleanup() { kill "$BACKEND_PID" 2>/dev/null || true; }
 trap cleanup EXIT INT TERM
 
 # Sobe o frontend em primeiro plano
-echo "› Frontend : http://localhost:5173"
+echo "› Frontend : http://localhost:5180"
 npm --prefix frontend run dev
