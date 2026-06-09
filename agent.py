@@ -1,6 +1,5 @@
 import os
 import voyageai
-from pymongo import MongoClient
 from typing import Annotated, TypedDict, List
 from langchain_core.messages import BaseMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -9,9 +8,12 @@ from langgraph.graph import StateGraph, END
 from langgraph.graph.message import add_messages
 from langgraph.checkpoint.mongodb import MongoDBSaver
 from config import DB_NAME, CLIENT_NAME, DOCUMENT_TITLE, SYSTEM_PROMPT_EXTRA
+from db import get_client
 from dotenv import load_dotenv
 
 load_dotenv()
+
+MODEL = "claude-sonnet-4-6"
 
 SYSTEM_PROMPT = f"""Você é um assistente especializado em {DOCUMENT_TITLE} para {CLIENT_NAME}.
 
@@ -82,8 +84,7 @@ def retrieve_context(query: str, top_k: int = 15,
     levels = access_levels if access_levels else ALL_ACCESS
 
     voyage = voyageai.Client(api_key=os.environ["VOYAGE_API_KEY"])
-    client = MongoClient(os.environ["MONGO_URI"])
-    collection = client[DB_NAME]["documents"]
+    collection = get_client()[DB_NAME]["documents"]
 
     embedding = voyage.embed([query], model="voyage-3", input_type="query").embeddings[0]
 
@@ -93,7 +94,6 @@ def retrieve_context(query: str, top_k: int = 15,
         lexical_results = list(collection.aggregate(_lexical_pipeline(query, top_k, levels)))
     except Exception:
         lexical_results = []  # tolerante: se o índice léxico falhar, segue só com vetorial
-    client.close()
 
     # 2) Reciprocal Rank Fusion (RRF) — funde os dois rankings por _id
     fused: dict = {}
@@ -169,7 +169,16 @@ def retrieve_context(query: str, top_k: int = 15,
     return "\n\n---\n\n".join(parts), sources, stats
 
 
-llm = ChatAnthropic(model="claude-sonnet-4-20250514", temperature=0)
+# Lazy: evita instanciar o ChatAnthropic no import (derrubaria a API se a
+# ANTHROPIC_API_KEY não estivesse no ambiente, mesmo sem usar o grafo).
+_llm = None
+
+
+def _get_llm() -> ChatAnthropic:
+    global _llm
+    if _llm is None:
+        _llm = ChatAnthropic(model=MODEL, temperature=0)
+    return _llm
 
 
 def retrieve_node(state: AgentState) -> AgentState:
@@ -183,7 +192,7 @@ def generate_node(state: AgentState) -> AgentState:
         ("system", SYSTEM_PROMPT),
         MessagesPlaceholder(variable_name="messages"),
     ])
-    response = (prompt | llm).invoke({
+    response = (prompt | _get_llm()).invoke({
         "context": state["context"],
         "messages": state["messages"],
     })
@@ -197,6 +206,5 @@ def build_graph():
     builder.set_entry_point("retrieve")
     builder.add_edge("retrieve", "generate")
     builder.add_edge("generate", END)
-    mongo_client = MongoClient(os.environ["MONGO_URI"])
-    checkpointer = MongoDBSaver(mongo_client, db_name=DB_NAME)
+    checkpointer = MongoDBSaver(get_client(), db_name=DB_NAME)
     return builder.compile(checkpointer=checkpointer)

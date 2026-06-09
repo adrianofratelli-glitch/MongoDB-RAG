@@ -23,7 +23,7 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 
 from langchain_anthropic import ChatAnthropic
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 
 from config import (
     CLIENT_NAME,
@@ -34,7 +34,8 @@ from config import (
     FOLLOWUPS,
     DEFAULT_FOLLOWUPS,
 )
-from agent import retrieve_context
+from agent import retrieve_context, MODEL
+from db import get_client
 
 load_dotenv()
 
@@ -70,13 +71,10 @@ _status_cache = {"ts": 0.0, "online": False, "chunks": None}
 
 
 def _ping_atlas():
-    from pymongo import MongoClient
-
     try:
-        client = MongoClient(os.environ["MONGO_URI"], serverSelectionTimeoutMS=3500)
+        client = get_client()
         client.admin.command("ping")
         chunks = client[DB_NAME]["documents"].count_documents({})
-        client.close()
         return True, chunks
     except Exception:
         return False, None
@@ -129,11 +127,9 @@ def _levels_for(access_level: str) -> list:
 def _save_conversation(thread_id, messages):
     if not thread_id:
         return
-    from pymongo import MongoClient
     from datetime import datetime, timezone
     try:
-        client = MongoClient(os.environ["MONGO_URI"], serverSelectionTimeoutMS=3500)
-        client[DB_NAME]["conversations"].update_one(
+        get_client()[DB_NAME]["conversations"].update_one(
             {"_id": thread_id},
             {"$set": {
                 "client": CLIENT_NAME,
@@ -143,17 +139,13 @@ def _save_conversation(thread_id, messages):
             }},
             upsert=True,
         )
-        client.close()
     except Exception:
         pass  # persistência nunca deve derrubar o chat
 
 
 def _load_conversation(thread_id):
-    from pymongo import MongoClient
     try:
-        client = MongoClient(os.environ["MONGO_URI"], serverSelectionTimeoutMS=3500)
-        doc = client[DB_NAME]["conversations"].find_one({"_id": thread_id})
-        client.close()
+        doc = get_client()[DB_NAME]["conversations"].find_one({"_id": thread_id})
         if not doc:
             return []
         return [{"role": m.get("role"), "content": m.get("content")}
@@ -230,30 +222,32 @@ def api_chat(body: ChatBody):
             )
 
             llm = ChatAnthropic(
-                model="claude-sonnet-4-20250514",
+                model=MODEL,
                 temperature=0,
                 streaming=True,
                 api_key=os.environ["ANTHROPIC_API_KEY"],
             )
-            prompt = ChatPromptTemplate.from_messages(
-                [
-                    (
-                        "system",
-                        SYSTEM_PROMPT.format(
-                            document_title=DOCUMENT_TITLE,
-                            client_name=CLIENT_NAME,
-                            context=context,
-                        ),
-                    ),
-                    *[
-                        ("human" if m.get("role") == "user" else "ai", m.get("content", ""))
-                        for m in body.messages
-                    ],
-                    ("human", body.question),
-                ]
-            )
+            # Mensagens construídas diretamente (sem ChatPromptTemplate): o
+            # contexto do PDF e o histórico podem conter chaves `{}`, que um
+            # template interpretaria como variáveis e quebraria a requisição.
+            lc_messages = [
+                SystemMessage(
+                    content=SYSTEM_PROMPT.format(
+                        document_title=DOCUMENT_TITLE,
+                        client_name=CLIENT_NAME,
+                        context=context,
+                    )
+                ),
+                *[
+                    (HumanMessage if m.get("role") == "user" else AIMessage)(
+                        content=m.get("content", "")
+                    )
+                    for m in body.messages
+                ],
+                HumanMessage(content=body.question),
+            ]
             full = ""
-            for chunk in llm.stream(prompt.format_messages()):
+            for chunk in llm.stream(lc_messages):
                 if chunk.content:
                     full += chunk.content
                     yield _sse({"type": "token", "delta": chunk.content})

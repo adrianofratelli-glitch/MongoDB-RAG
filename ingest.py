@@ -34,7 +34,7 @@ def get_loader(file_path: str):
     )
 
 
-def ingest(file_path: str, reset: bool = False) -> None:
+def ingest(file_path: str, reset: bool = False, nivel_acesso: str = "publico") -> None:
     path = Path(file_path)
     if not path.exists():
         print(f"❌ Arquivo não encontrado: {file_path}")
@@ -95,8 +95,7 @@ def ingest(file_path: str, reset: bool = False) -> None:
                     "page": batch_chunks[j].metadata.get("page", 0),
                     "chunk_id": i + j,
                     # ACL: nível de acesso usado no filtro do $vectorSearch / Atlas Search.
-                    # Ajuste a regra conforme a sensibilidade do conteúdo do cliente.
-                    "nivel_acesso": "publico",
+                    "nivel_acesso": nivel_acesso,
                 },
             })
 
@@ -128,5 +127,11 @@ if __name__ == "__main__":
         action="store_true",
         help="Remove chunks existentes e re-indexa o documento",
     )
+    parser.add_argument(
+        "--nivel",
+        choices=["publico", "restrito"],
+        default="publico",
+        help="Nível de acesso (ACL) atribuído aos chunks deste documento",
+    )
     args = parser.parse_args()
-    ingest(args.file, reset=args.reset)
+    ingest(args.file, reset=args.reset, nivel_acesso=args.nivel)

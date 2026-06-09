@@ -10,41 +10,49 @@ Boilerplate de **RAG (Retrieval-Augmented Generation) corporativo** com busca se
 
 ```mermaid
 graph TD
-    User([👤 Usuário]) <-->|Chat / Prompt| ST[💻 Streamlit Frontend]
+    User([👤 Usuário]) <-->|Chat / SSE| UI[💻 React + LeafyGreen]
+    UI <-->|HTTP /api| API[⚡ FastAPI]
 
-    subgraph Pipeline RAG
-        ST -->|Query| EMB[🔢 VoyageAI voyage-3\nEmbedding da Query]
-        EMB -->|Vetor| VS[🔍 MongoDB Atlas\nVector Search]
-        VS -->|Top-K Candidatos| RNK[🎯 VoyageAI rerank-2\nReranking Semântico]
-        RNK -->|Contexto Reordenado| LLM[🤖 Anthropic Claude\nSonnet]
+    subgraph Pipeline RAG - Hybrid Search
+        API -->|Query| EMB[🔢 VoyageAI voyage-3\nEmbedding da Query]
+        EMB -->|Vetor| VS[🔍 Atlas Vector Search\nfiltro de ACL]
+        API -->|Texto| LX[📝 Atlas Search BM25\nfiltro de ACL]
+        VS -->|Ranking vetorial| RRF[⚖️ Reciprocal Rank Fusion]
+        LX -->|Ranking léxico| RRF
+        RRF -->|Candidatos fundidos| RNK[🎯 VoyageAI rerank-2\nReranking Semântico]
+        RNK -->|Contexto Reordenado| LLM[🤖 Anthropic Claude\nSonnet 4.6]
     end
 
-    LLM -->|Token Streaming| ST
-    ST <-->|Persiste Sessão| MDB[(🍃 MongoDB Atlas\nCheckpoints)]
+    LLM -->|Token Streaming| API
+    API <-->|Persiste Conversa| MDB[(🍃 MongoDB Atlas\nconversations)]
 ```
 
 ### Fluxo detalhado
 
 | Etapa | Componente | Descrição |
 |-------|-----------|-----------|
-| 1 | **Ingestão** | Documento (PDF/DOCX/TXT/CSV) → chunks → embeddings via `voyage-3` → Atlas |
-| 2 | **Query** | Pergunta do usuário → embedding → Vector Search (ANN) no Atlas |
-| 3 | **Reranking** | Top-K candidatos reordenados pelo `rerank-2` → apenas os 8 mais relevantes passam |
-| 4 | **Geração** | Contexto limpo + histórico da sessão → Claude Sonnet com streaming |
-| 5 | **Persistência** | Checkpoints de sessão salvos no MongoDB para retomada futura |
+| 1 | **Ingestão** | Documento (PDF/DOCX/TXT/CSV) → chunks → embeddings via `voyage-3` → Atlas (com `nivel_acesso` para ACL) |
+| 2 | **Hybrid Search** | Pergunta → busca vetorial (ANN) **+** busca léxica (BM25) em paralelo, ambas com filtro de ACL |
+| 3 | **Fusão (RRF)** | Os dois rankings são fundidos por Reciprocal Rank Fusion |
+| 4 | **Reranking** | Candidatos fundidos reordenados pelo `rerank-2` → apenas os 8 mais relevantes passam |
+| 5 | **Geração** | Contexto limpo + histórico da sessão → Claude Sonnet 4.6 com streaming SSE |
+| 6 | **Persistência** | Conversa salva na collection `conversations` do mesmo Atlas (retomada por Thread ID) |
 
 ---
 
 ## ✨ Funcionalidades
 
-- **Busca Semântica** — MongoDB Atlas Vector Search com embeddings `voyage-3`
+- **Hybrid Search** — busca vetorial (`$vectorSearch`) **+** léxica (Atlas Search/BM25) fundidas por RRF
 - **Reranking** — `rerank-2` da VoyageAI filtra e reordena candidatos antes do LLM
-- **Streaming** — respostas em tempo real token a token via Claude Sonnet
-- **Memória de Sessão** — histórico de conversa persistido no MongoDB (LangGraph Checkpointer)
+- **ACL por nível de acesso** — filtro `nivel_acesso` (público/restrito) aplicado nos dois índices
+- **Streaming** — respostas em tempo real token a token (SSE) via Claude Sonnet 4.6
+- **Memória persistida** — conversa salva no MongoDB e retomável por Thread ID
 - **Multi-formato** — ingestão de `.pdf`, `.docx`, `.txt`, `.csv`
 - **Multi-cliente** — cada cliente tem seu próprio banco, configurado via `.env`
 - **Perguntas personalizadas** — sugestões e follow-ups configuráveis por `client_config.json`
 - **Export** — conversa exportável em TXT ou JSON
+
+> **Nota (POC):** o nível de acesso é selecionado na própria interface para fins de demonstração. Em produção, ele viria de um sistema de autenticação (SSO/JWT), nunca do cliente.
 
 ---
 
@@ -54,9 +62,9 @@ graph TD
 |--------|-----------|
 | Interface | React + Vite + **LeafyGreen** (design system oficial MongoDB) |
 | API | FastAPI (streaming SSE) |
-| Banco / Vector Store | MongoDB Atlas |
+| Banco / Vector Store | MongoDB Atlas (Vector Search + Atlas Search) |
 | Embeddings & Reranker | VoyageAI (`voyage-3`, `rerank-2`) |
-| LLM | Anthropic Claude Sonnet |
+| LLM | Anthropic Claude Sonnet 4.6 (`claude-sonnet-4-6`) |
 | Orquestração | LangGraph |
 | Carregamento de docs | LangChain Community Loaders |
 
@@ -95,16 +103,13 @@ DOCUMENT_DESCRIPTION="Descrição exibida na interface."
 
 ### 3. Configure o MongoDB Atlas
 
-Execute o script de setup para criar collections e índices:
+Execute o script de setup — ele cria as collections **e os dois índices** (vetorial `vector_index` com filtro de ACL e léxico `text_index` para o hybrid search):
 
 ```bash
 python setup_db.py
 ```
 
-Em seguida, crie o índice vetorial no Atlas UI:
-- Collection: `documents`
-- Campo: `embedding` | Dimensões: `1024` | Similaridade: `cosine`
-- Nome do índice: `vector_index`
+> Os índices Atlas Search levam ~1 minuto para ficarem ativos após a criação.
 
 ### 4. Ingira o documento
 
@@ -114,6 +119,9 @@ python ingest.py caminho/para/documento.pdf
 
 # Para reindexar um documento já existente
 python ingest.py caminho/para/documento.pdf --reset
+
+# Para indexar como conteúdo restrito (demo de ACL)
+python ingest.py caminho/para/anexo_confidencial.pdf --nivel restrito
 ```
 
 > **Free tier VoyageAI:** o script usa batches conservadores com pausa de 22s entre eles para respeitar o limite de 3 RPM.
@@ -126,7 +134,15 @@ Copie e edite o arquivo de configuração do cliente:
 cp client_config.example.json client_config.json
 ```
 
-### 6. Inicie a aplicação (2 processos)
+### 6. Inicie a aplicação
+
+**Atalho (sobe backend + frontend de uma vez):**
+
+```bash
+./run.sh
+```
+
+Ou manualmente, em 2 processos:
 
 **Backend (API FastAPI):**
 
@@ -157,10 +173,11 @@ Abra **http://localhost:5173**. O frontend faz proxy de `/api` para o backend, s
 │       ├── App.jsx            # Orquestração + estado
 │       ├── api.js             # axios (config/status) + fetch SSE (chat)
 │       └── components/        # Sidebar, TopBar, KpiRow, ChatMessage, EngineStrip, Sources, ...
-├── agent.py                   # retrieve_context (Vector Search + rerank) — reaproveitado
-├── ingest.py                  # Ingestão multi-formato
-├── setup_db.py                # Setup de collections e índices
+├── agent.py                   # retrieve_context (hybrid search + RRF + rerank, com ACL)
+├── ingest.py                  # Ingestão multi-formato (com --nivel para ACL)
+├── setup_db.py                # Setup de collections e índices (vector_index + text_index)
 ├── config.py                  # Configuração central via env vars
+├── db.py                      # Cliente MongoDB compartilhado (pool de conexões)
 ├── client_config.json         # Perguntas/followups por cliente (não versionado)
 ├── client_config.example.json # Exemplo de configuração de cliente
 ├── requirements.txt
