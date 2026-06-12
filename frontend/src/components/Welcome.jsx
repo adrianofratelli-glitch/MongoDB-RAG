@@ -1,31 +1,41 @@
-import Banner from '@leafygreen-ui/banner'
-import Button from '@leafygreen-ui/button'
-import { Body } from '@leafygreen-ui/typography'
 import { C } from '../theme'
+
+// Accents rotativos das barras de topo dos cards (como na pitch)
+const ACCENTS = [C.green, C.purple, C.cyan, C.teal, C.orange]
 
 export default function Welcome({ config, onPick }) {
   return (
     <div>
-      <Banner darkMode variant="info" style={{ marginBottom: 16 }}>
-        <strong style={{ color: C.text }}>Bem-vindo ao Assistente {config.client_name}</strong>
-        <br />
-        {config.document_description}
-        <br />
-        Conectado ao <strong style={{ color: C.green }}>MongoDB Atlas</strong> com busca semântica{' '}
-        <em>{config.embed_model}</em> + reranking <em>{config.rerank_model}</em>.
-      </Banner>
+      <div className="fade-up d1" style={{ padding: '18px 0 4px' }}>
+        <div className="hub-badge">RAG · Atlas Vector Search</div>
+        <h1 className="splash-title">
+          Converse com o <span>{config.document_title}</span>.
+        </h1>
+        <p className="splash-sub">
+          {config.document_description} Busca semântica <strong style={{ color: C.text }}>{config.embed_model}</strong>{' '}
+          + léxica (BM25) fundidas por RRF, reranking <strong style={{ color: C.text }}>{config.rerank_model}</strong>{' '}
+          e respostas em streaming — tudo sobre o <strong style={{ color: C.green }}>MongoDB Atlas</strong>.
+        </p>
+      </div>
 
       {config.questions?.length > 0 && (
-        <>
-          <div className="sb-section-label" style={{ marginLeft: 0 }}>Sugestões de perguntas</div>
+        <div className="fade-up d3">
+          <div className="sb-section-label" style={{ marginLeft: 0 }}>Escolha uma pergunta</div>
           <div className="sugg-grid">
             {config.questions.map((q, i) => (
-              <Button key={i} darkMode onClick={() => onPick(q)} style={{ justifyContent: 'flex-start' }}>
-                <Body style={{ color: C.text, textAlign: 'left' }}>{q}</Body>
-              </Button>
+              <button
+                key={i}
+                className="sugg-card"
+                style={{ '--card-accent': ACCENTS[i % ACCENTS.length] }}
+                onClick={() => onPick(q)}
+              >
+                <span className="sugg-num">Pergunta {String(i + 1).padStart(2, '0')}</span>
+                <span className="sugg-text">{q}</span>
+                <span className="sugg-arrow">→</span>
+              </button>
             ))}
           </div>
-        </>
+        </div>
       )}
     </div>
   )

@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import Banner from '@leafygreen-ui/banner'
-import Button from '@leafygreen-ui/button'
-import { Body } from '@leafygreen-ui/typography'
 import { getConfig, getStatus, getHistory, streamChat } from './api'
 import Sidebar from './components/Sidebar'
 import TopBar from './components/TopBar'
@@ -157,9 +155,11 @@ export default function App() {
                 <div className="sb-section-label" style={{ marginLeft: 0 }}>Perguntas relacionadas</div>
                 <div className="sugg-grid">
                   {last.followups.map((fq, i) => (
-                    <Button key={i} darkMode onClick={() => send(fq)} style={{ justifyContent: 'flex-start' }}>
-                      <Body style={{ color: C.text }}>{fq}</Body>
-                    </Button>
+                    <button key={i} className="sugg-card" onClick={() => send(fq)}>
+                      <span className="sugg-num">Continuar {String(i + 1).padStart(2, '0')}</span>
+                      <span className="sugg-text">{fq}</span>
+                      <span className="sugg-arrow">→</span>
+                    </button>
                   ))}
                 </div>
               </div>
