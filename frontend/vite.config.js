@@ -2,7 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { fileURLToPath, URL } from 'node:url'
 
-// Proxy /api -> backend FastAPI (:8000) para evitar CORS no dev.
+// Proxy /api -> backend FastAPI (:8180) para evitar CORS no dev.
 export default defineConfig({
   plugins: [react()],
   resolve: {
@@ -20,7 +20,7 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'http://localhost:8180',
         changeOrigin: true,
       },
     },

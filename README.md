@@ -147,7 +147,7 @@ Ou manualmente, em 2 processos:
 **Backend (API FastAPI):**
 
 ```bash
-uvicorn backend.api:app --reload --port 8000
+uvicorn backend.api:app --reload --port 8180
 ```
 
 **Frontend (React + LeafyGreen):**
@@ -155,7 +155,7 @@ uvicorn backend.api:app --reload --port 8000
 ```bash
 cd frontend
 npm install        # primeira vez
-npm run dev        # abre em http://localhost:5180 (proxy /api -> :8000)
+npm run dev        # abre em http://localhost:5180 (proxy /api -> :8180)
 ```
 
 Abra **http://localhost:5180**. O frontend faz proxy de `/api` para o backend, sem CORS.
@@ -193,7 +193,7 @@ Abra **http://localhost:5180**. O frontend faz proxy de `/api` para o backend, s
 1. Configure `.env` com os dados do novo cliente
 2. Coloque o documento em `data/`
 3. Copie `client_config.example.json` → `client_config.json` e personalize
-4. `python setup_db.py` → `python ingest.py data/documento.pdf` → `uvicorn backend.api:app --port 8000` + `cd frontend && npm run dev`
+4. `python setup_db.py` → `python ingest.py data/documento.pdf` → `uvicorn backend.api:app --port 8180` + `cd frontend && npm run dev`
 
 Cada cliente usa um banco MongoDB isolado (`rag_<CLIENT_ID>`), sem interferência entre projetos.
 

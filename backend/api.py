@@ -8,7 +8,7 @@ Reaproveita:
   - agent.retrieve_context(query) -> (context, sources, stats)
   - config (CLIENT_NAME, DOCUMENT_TITLE, ..., QUESTIONS, FOLLOWUPS)
 
-Rodar:  uvicorn backend.api:app --reload --port 8000  (a partir da raiz do projeto)
+Rodar:  uvicorn backend.api:app --reload --port 8180  (a partir da raiz do projeto)
 """
 import os
 import re
@@ -41,7 +41,7 @@ load_dotenv()
 
 app = FastAPI(title="RAG · MongoDB Atlas Vector Search (POC)")
 
-# CORS liberado para dev (o Vite também faz proxy /api -> :8000).
+# CORS liberado para dev (o Vite também faz proxy /api -> :8180).
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

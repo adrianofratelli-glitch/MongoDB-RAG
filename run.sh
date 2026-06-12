@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
 # Inicia a POC localmente:
-#   - Backend  : API FastAPI  em http://localhost:8000
-#   - Frontend : React + Vite em http://localhost:5180  (proxy /api -> :8000)
+#   - Backend  : API FastAPI  em http://localhost:8180
+#   - Frontend : React + Vite em http://localhost:5180  (proxy /api -> :8180)
 #
 # Uso:  ./run.sh
 #
@@ -24,8 +24,8 @@ if [ ! -d "frontend/node_modules" ]; then
 fi
 
 # Sobe o backend em segundo plano
-echo "› Backend  : http://localhost:8000"
-uvicorn backend.api:app --port 8000 &
+echo "› Backend  : http://localhost:8180"
+uvicorn backend.api:app --port 8180 &
 BACKEND_PID=$!
 
 # Encerra o backend ao sair (Ctrl+C)
