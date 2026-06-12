@@ -17,6 +17,17 @@ if [ -d ".venv" ]; then
   source .venv/bin/activate
 fi
 
+# Falha cedo, com diagnóstico, se as portas dedicadas já estiverem ocupadas
+for port in 8180 5180; do
+  pid="$(lsof -nP -iTCP:"$port" -sTCP:LISTEN -t 2>/dev/null | head -1 || true)"
+  if [ -n "$pid" ]; then
+    echo "✗ Porta $port já está em uso pelo processo $pid:"
+    ps -p "$pid" -o command= | cut -c1-100
+    echo "  Para liberar:  kill $pid    (depois rode ./run.sh de novo)"
+    exit 1
+  fi
+done
+
 # Dependências do frontend na primeira execução
 if [ ! -d "frontend/node_modules" ]; then
   echo "› Instalando dependências do frontend (primeira vez)…"
