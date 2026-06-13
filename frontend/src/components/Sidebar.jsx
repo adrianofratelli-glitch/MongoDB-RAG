@@ -76,7 +76,7 @@ export default function Sidebar({ config, status, threadId, totalQueries, chunks
 
       <div className="sb-divider" />
 
-      {/* Perfil de acesso (ACL) */}
+      {/* Access profile (ACL) */}
       <div className="sb-section-label" style={{ marginTop: 0 }}>Perfil de acesso</div>
       <div style={{ display: 'flex', gap: 8 }}>
         {[
@@ -128,7 +128,7 @@ export default function Sidebar({ config, status, threadId, totalQueries, chunks
         </div>
       </Card>
 
-      {/* Conexão */}
+      {/* Connection */}
       <div style={{ marginTop: 14, background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, padding: '10px 14px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: C.sub }}>
           <span>Conexão</span>

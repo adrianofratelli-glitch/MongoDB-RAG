@@ -1,8 +1,8 @@
-"""Cliente MongoDB compartilhado (singleton).
+"""Shared MongoDB client (singleton).
 
-O MongoClient do PyMongo mantém um pool de conexões interno e é thread-safe;
-criar um cliente por requisição descarta o pool e adiciona latência de
-handshake/TLS a cada chamada. Reutilize sempre esta instância.
+PyMongo's MongoClient keeps an internal connection pool and is thread-safe.
+Creating a client per request discards that pool and adds handshake/TLS
+latency to every call, so always reuse this instance.
 """
 import os
 

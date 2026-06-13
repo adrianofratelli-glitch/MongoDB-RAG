@@ -1,6 +1,6 @@
 import { C } from '../theme'
 
-// Accents rotativos das barras de topo dos cards (como na pitch)
+// Rotating accent colors for the card top bars
 const ACCENTS = [C.green, C.purple, C.cyan, C.teal, C.orange]
 
 export default function Welcome({ config, onPick }) {

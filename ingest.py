@@ -29,15 +29,15 @@ def get_loader(file_path: str):
         from langchain_community.document_loaders import CSVLoader
         return CSVLoader(file_path)
     raise ValueError(
-        f"Formato não suportado: '{ext}'. "
-        f"Formatos aceitos: {', '.join(sorted(SUPPORTED_FORMATS))}"
+        f"Unsupported format: '{ext}'. "
+        f"Accepted formats: {', '.join(sorted(SUPPORTED_FORMATS))}"
     )
 
 
 def ingest(file_path: str, reset: bool = False, nivel_acesso: str = "publico") -> None:
     path = Path(file_path)
     if not path.exists():
-        print(f"❌ Arquivo não encontrado: {file_path}")
+        print(f"File not found: {file_path}")
         sys.exit(1)
 
     client = MongoClient(os.environ["MONGO_URI"])
@@ -48,22 +48,22 @@ def ingest(file_path: str, reset: bool = False, nivel_acesso: str = "publico") -
 
     if existing > 0 and not reset:
         print(
-            f"⚠️  '{source_name}' já está indexado ({existing} chunks). "
-            "Use --reset para reindexar."
+            f"'{source_name}' is already indexed ({existing} chunks). "
+            "Use --reset to re-index."
         )
         client.close()
         return
 
     if reset and existing > 0:
-        print(f"🗑️  Removendo {existing} chunks de '{source_name}'...")
+        print(f"Removing {existing} chunks from '{source_name}'...")
         collection.delete_many({"metadata.source": source_name})
 
     voyage = voyageai.Client(api_key=os.environ["VOYAGE_API_KEY"])
 
-    print(f"📄 Carregando {path.name}...")
+    print(f"Loading {path.name}...")
     loader = get_loader(file_path)
     docs = loader.load()
-    print(f"   {len(docs)} páginas/seções carregadas")
+    print(f"   {len(docs)} pages/sections loaded")
 
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=800,
@@ -71,13 +71,13 @@ def ingest(file_path: str, reset: bool = False, nivel_acesso: str = "publico") -
         separators=["\n\n", "\n", ".", " "],
     )
     chunks = splitter.split_documents(docs)
-    print(f"   {len(chunks)} chunks gerados")
+    print(f"   {len(chunks)} chunks generated")
 
     texts = [c.page_content for c in chunks]
-    batch_size = 10  # conservador para free tier (10K TPM)
+    batch_size = 10  # conservative for the free tier (10K TPM)
     docs_to_insert = []
 
-    print("🔢 Gerando embeddings (free tier — ~25 min para documentos grandes)...")
+    print("Generating embeddings (free tier may take several minutes for large documents)...")
     for i in range(0, len(texts), batch_size):
         batch_texts = texts[i : i + batch_size]
         batch_chunks = chunks[i : i + batch_size]
@@ -94,7 +94,7 @@ def ingest(file_path: str, reset: bool = False, nivel_acesso: str = "publico") -
                     "file": path.name,
                     "page": batch_chunks[j].metadata.get("page", 0),
                     "chunk_id": i + j,
-                    # ACL: nível de acesso usado no filtro do $vectorSearch / Atlas Search.
+                    # Access level used by the $vectorSearch / Atlas Search filter.
                     "nivel_acesso": nivel_acesso,
                 },
             })
@@ -102,36 +102,36 @@ def ingest(file_path: str, reset: bool = False, nivel_acesso: str = "publico") -
         progress = min(i + batch_size, len(texts))
         print(f"   {progress}/{len(texts)} chunks | batch {i // batch_size + 1}", end="\r")
 
-        # Rate limit: 3 RPM = 1 req a cada 20s (com margem)
+        # Rate limit: 3 RPM, i.e. one request every 20s (with margin)
         if i + batch_size < len(texts):
             time.sleep(22)
 
-    print(f"\n💾 Inserindo {len(docs_to_insert)} docs no Atlas (DB: {DB_NAME})...")
+    print(f"\nInserting {len(docs_to_insert)} documents into Atlas (DB: {DB_NAME})...")
     collection.insert_many(docs_to_insert)
-    print("✅ Ingestão concluída!")
+    print("Ingestion complete.")
     client.close()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Ingesta documentos no RAG (PDF, DOCX, TXT, CSV)"
+        description="Ingest documents into the RAG store (PDF, DOCX, TXT, CSV)"
     )
     parser.add_argument(
         "file",
         nargs="?",
         default="data/documento.pdf",
-        help="Caminho para o arquivo a indexar",
+        help="Path to the file to index",
     )
     parser.add_argument(
         "--reset",
         action="store_true",
-        help="Remove chunks existentes e re-indexa o documento",
+        help="Remove existing chunks and re-index the document",
     )
     parser.add_argument(
         "--nivel",
         choices=["publico", "restrito"],
         default="publico",
-        help="Nível de acesso (ACL) atribuído aos chunks deste documento",
+        help="Access level (public/restricted) assigned to this document's chunks",
     )
     args = parser.parse_args()
     ingest(args.file, reset=args.reset, nivel_acesso=args.nivel)

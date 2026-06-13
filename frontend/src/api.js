@@ -16,7 +16,7 @@ export async function getHistory(threadId) {
 }
 
 /**
- * Stream do chat via SSE (fetch + ReadableStream).
+ * Stream the chat over SSE (fetch + ReadableStream).
  * handlers: { onMeta(evt), onToken(delta), onDone(), onError(msg) }
  */
 export async function streamChat({ question, messages, threadId, accessLevel }, handlers) {

@@ -2,7 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { fileURLToPath, URL } from 'node:url'
 
-// Proxy /api -> backend FastAPI (:8180) para evitar CORS no dev.
+// Proxy /api -> FastAPI backend (:8180) to avoid CORS in development.
 export default defineConfig({
   plugins: [react()],
   resolve: {
@@ -14,9 +14,9 @@ export default defineConfig({
     },
   },
   server: {
-    // Porta dedicada da POC TJGO — 5173 colide com outras POCs locais (Vite default).
+    // Dedicated port for this POC; 5173 (the Vite default) collides with other local apps.
     port: 5180,
-    strictPort: true, // falha alto em vez de cair silenciosamente em outra porta
+    strictPort: true, // fail loudly instead of silently switching ports
     host: true,
     proxy: {
       '/api': {

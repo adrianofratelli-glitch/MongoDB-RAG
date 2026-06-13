@@ -1,78 +1,77 @@
-# Enterprise RAG Assistant 🧠
+# RAG Assistant — MongoDB Atlas Vector Search
 
-Boilerplate de **RAG (Retrieval-Augmented Generation) corporativo** com busca semântica avançada, reranking e memória persistente. Projetado para ser configurado rapidamente para qualquer cliente e qualquer tipo de documento.
+A retrieval-augmented generation (RAG) assistant for querying corporate documents
+in natural language. This proof of concept runs entirely on MongoDB Atlas: it
+combines vector and lexical search, re-ranks the candidates, and streams answers
+from Claude. The reference deployment answers questions about the TJGO PDTIC
+2025–2027 plan, but the stack is document- and tenant-agnostic.
 
-> **Multi-cliente:** cada cliente usa seu próprio banco no MongoDB Atlas, configurado via variáveis de ambiente — sem tocar no código.
+> Each tenant runs against its own MongoDB Atlas database, configured entirely
+> through environment variables.
 
----
-
-## 🏗️ Arquitetura
+## Architecture
 
 ```mermaid
 graph TD
-    User([👤 Usuário]) <-->|Chat / SSE| UI[💻 React + LeafyGreen]
-    UI <-->|HTTP /api| API[⚡ FastAPI]
+    User([User]) <-->|Chat / SSE| UI[React + LeafyGreen]
+    UI <-->|HTTP /api| API[FastAPI]
 
-    subgraph Pipeline RAG - Hybrid Search
-        API -->|Query| EMB[🔢 VoyageAI voyage-3\nEmbedding da Query]
-        EMB -->|Vetor| VS[🔍 Atlas Vector Search\nfiltro de ACL]
-        API -->|Texto| LX[📝 Atlas Search BM25\nfiltro de ACL]
-        VS -->|Ranking vetorial| RRF[⚖️ Reciprocal Rank Fusion]
-        LX -->|Ranking léxico| RRF
-        RRF -->|Candidatos fundidos| RNK[🎯 VoyageAI rerank-2\nReranking Semântico]
-        RNK -->|Contexto Reordenado| LLM[🤖 Anthropic Claude\nSonnet 4.6]
+    subgraph Retrieval [Hybrid retrieval pipeline]
+        API -->|query| EMB[VoyageAI voyage-3 embedding]
+        EMB -->|vector| VS[Atlas Vector Search + ACL filter]
+        API -->|text| LX[Atlas Search BM25 + ACL filter]
+        VS -->|vector ranking| RRF[Reciprocal Rank Fusion]
+        LX -->|lexical ranking| RRF
+        RRF -->|fused candidates| RNK[VoyageAI rerank-2]
+        RNK -->|reordered context| LLM[Anthropic Claude Sonnet 4.6]
     end
 
-    LLM -->|Token Streaming| API
-    API <-->|Persiste Conversa| MDB[(🍃 MongoDB Atlas\nconversations)]
+    LLM -->|token streaming| API
+    API <-->|persist conversation| MDB[(MongoDB Atlas · conversations)]
 ```
 
-### Fluxo detalhado
+### Request flow
 
-| Etapa | Componente | Descrição |
-|-------|-----------|-----------|
-| 1 | **Ingestão** | Documento (PDF/DOCX/TXT/CSV) → chunks → embeddings via `voyage-3` → Atlas (com `nivel_acesso` para ACL) |
-| 2 | **Hybrid Search** | Pergunta → busca vetorial (ANN) **+** busca léxica (BM25) em paralelo, ambas com filtro de ACL |
-| 3 | **Fusão (RRF)** | Os dois rankings são fundidos por Reciprocal Rank Fusion |
-| 4 | **Reranking** | Candidatos fundidos reordenados pelo `rerank-2` → apenas os 8 mais relevantes passam |
-| 5 | **Geração** | Contexto limpo + histórico da sessão → Claude Sonnet 4.6 com streaming SSE |
-| 6 | **Persistência** | Conversa salva na collection `conversations` do mesmo Atlas (retomada por Thread ID) |
+| Step | Component | Description |
+|------|-----------|-------------|
+| 1 | Ingestion | Document (PDF/DOCX/TXT/CSV) is split into chunks, embedded with `voyage-3`, and stored in Atlas with an access-level tag |
+| 2 | Hybrid search | The query runs vector (ANN) and lexical (BM25) search in parallel, each filtered by access level |
+| 3 | Fusion | The two rankings are merged with Reciprocal Rank Fusion (RRF) |
+| 4 | Re-ranking | `rerank-2` reorders the fused candidates; the top 8 are kept |
+| 5 | Generation | The selected context and session history are sent to Claude Sonnet 4.6 with SSE streaming |
+| 6 | Persistence | The conversation is stored in the `conversations` collection and can be resumed by thread ID |
 
----
+## Features
 
-## ✨ Funcionalidades
+- **Hybrid search** — vector (`$vectorSearch`) and lexical (Atlas Search / BM25) fused with RRF
+- **Re-ranking** — VoyageAI `rerank-2` reorders candidates before they reach the model
+- **Access control** — `nivel_acesso` filter (public / restricted) applied on both search stages
+- **Streaming** — token-by-token answers over Server-Sent Events
+- **Persistent memory** — conversations stored in MongoDB and resumable by thread ID
+- **Multi-format ingestion** — PDF, DOCX, TXT, CSV
+- **Multi-tenant** — one Atlas database per tenant, configured through `.env`
+- **Configurable prompts** — starter questions and follow-ups per tenant via `client_config.json`
+- **Export** — conversations exportable to TXT or JSON
 
-- **Hybrid Search** — busca vetorial (`$vectorSearch`) **+** léxica (Atlas Search/BM25) fundidas por RRF
-- **Reranking** — `rerank-2` da VoyageAI filtra e reordena candidatos antes do LLM
-- **ACL por nível de acesso** — filtro `nivel_acesso` (público/restrito) aplicado nos dois índices
-- **Streaming** — respostas em tempo real token a token (SSE) via Claude Sonnet 4.6
-- **Memória persistida** — conversa salva no MongoDB e retomável por Thread ID
-- **Multi-formato** — ingestão de `.pdf`, `.docx`, `.txt`, `.csv`
-- **Multi-cliente** — cada cliente tem seu próprio banco, configurado via `.env`
-- **Perguntas personalizadas** — sugestões e follow-ups configuráveis por `client_config.json`
-- **Export** — conversa exportável em TXT ou JSON
+> This is a proof of concept. The access level is selected in the UI for
+> demonstration purposes. In production it would be derived from authentication
+> (SSO / JWT), never sent by the client.
 
-> **Nota (POC):** o nível de acesso é selecionado na própria interface para fins de demonstração. Em produção, ele viria de um sistema de autenticação (SSO/JWT), nunca do cliente.
+## Stack
 
----
-
-## 🛠️ Stack
-
-| Camada | Tecnologia |
-|--------|-----------|
-| Interface | React + Vite + **LeafyGreen** (design system oficial MongoDB) |
-| API | FastAPI (streaming SSE) |
-| Banco / Vector Store | MongoDB Atlas (Vector Search + Atlas Search) |
-| Embeddings & Reranker | VoyageAI (`voyage-3`, `rerank-2`) |
+| Layer | Technology |
+|-------|------------|
+| Frontend | React + Vite + LeafyGreen (MongoDB design system) |
+| API | FastAPI (SSE streaming) |
+| Database / vector store | MongoDB Atlas (Vector Search + Atlas Search) |
+| Embeddings & re-ranker | VoyageAI (`voyage-3`, `rerank-2`) |
 | LLM | Anthropic Claude Sonnet 4.6 (`claude-sonnet-4-6`) |
-| Orquestração | LangGraph |
-| Carregamento de docs | LangChain Community Loaders |
+| Orchestration | LangGraph |
+| Document loading | LangChain community loaders |
 
----
+## Getting started
 
-## 🚀 Setup
-
-### 1. Clone e ambiente virtual
+### 1. Clone and create a virtual environment
 
 ```bash
 git clone https://github.com/adrianofratelli-glitch/MongoDB-RAG.git
@@ -82,133 +81,127 @@ source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 2. Variáveis de ambiente
+### 2. Environment variables
 
-Copie `.env.example` para `.env` e preencha:
+Copy `.env.example` to `.env` and fill in the values:
 
 ```bash
 cp .env.example .env
 ```
 
 ```env
-MONGO_URI="sua_connection_string_atlas"
-VOYAGE_API_KEY="sua_chave_voyage"
-ANTHROPIC_API_KEY="sua_chave_anthropic"
+MONGO_URI="your_atlas_connection_string"
+VOYAGE_API_KEY="your_voyage_key"
+ANTHROPIC_API_KEY="your_anthropic_key"
 
-CLIENT_ID="nome_cliente"          # usado para nomear o banco: rag_<CLIENT_ID>
-CLIENT_NAME="Nome do Cliente"
-DOCUMENT_TITLE="Nome do Documento"
-DOCUMENT_DESCRIPTION="Descrição exibida na interface."
+CLIENT_ID="tenant_id"             # used to name the database: rag_<CLIENT_ID>
+CLIENT_NAME="Tenant Name"
+DOCUMENT_TITLE="Document Title"
+DOCUMENT_DESCRIPTION="Description shown in the interface."
 ```
 
-### 3. Configure o MongoDB Atlas
+### 3. Provision MongoDB Atlas
 
-Execute o script de setup — ele cria as collections **e os dois índices** (vetorial `vector_index` com filtro de ACL e léxico `text_index` para o hybrid search):
+`setup_db.py` creates the collections and both search indexes — the vector index
+(`vector_index`, with the access-level filter) and the lexical index
+(`text_index`) used by hybrid search:
 
 ```bash
 python setup_db.py
 ```
 
-> Os índices Atlas Search levam ~1 minuto para ficarem ativos após a criação.
+> Atlas search indexes take about a minute to become queryable after creation.
 
-### 4. Ingira o documento
+### 4. Ingest a document
 
 ```bash
-# PDF, DOCX, TXT ou CSV
-python ingest.py caminho/para/documento.pdf
+# PDF, DOCX, TXT, or CSV
+python ingest.py path/to/document.pdf
 
-# Para reindexar um documento já existente
-python ingest.py caminho/para/documento.pdf --reset
+# Re-index a document that is already stored
+python ingest.py path/to/document.pdf --reset
 
-# Para indexar como conteúdo restrito (demo de ACL)
-python ingest.py caminho/para/anexo_confidencial.pdf --nivel restrito
+# Ingest as restricted content (access-control demo)
+python ingest.py path/to/restricted-annex.pdf --nivel restrito
 ```
 
-> **Free tier VoyageAI:** o script usa batches conservadores com pausa de 22s entre eles para respeitar o limite de 3 RPM.
+> The VoyageAI free tier is limited to 3 requests per minute, so the script
+> embeds in small batches with a 22-second pause between them.
 
-### 5. Personalize perguntas (opcional)
-
-Copie e edite o arquivo de configuração do cliente:
+### 5. Configure starter questions (optional)
 
 ```bash
 cp client_config.example.json client_config.json
 ```
 
-### 6. Inicie a aplicação
+### 6. Run
 
-**Atalho (sobe backend + frontend de uma vez):**
+The helper script starts both services:
 
 ```bash
 ./run.sh
 ```
 
-Ou manualmente, em 2 processos:
-
-**Backend (API FastAPI):**
+Or run them separately:
 
 ```bash
+# Backend (FastAPI)
 uvicorn backend.api:app --reload --port 8180
-```
 
-**Frontend (React + LeafyGreen):**
-
-```bash
+# Frontend (React + LeafyGreen)
 cd frontend
-npm install        # primeira vez
-npm run dev        # abre em http://localhost:5180 (proxy /api -> :8180)
+npm install        # first run only
+npm run dev        # served at http://localhost:5180, proxies /api to :8180
 ```
 
-Abra **http://localhost:5180**. O frontend faz proxy de `/api` para o backend, sem CORS.
+Open **http://localhost:5180**. The frontend proxies `/api` to the backend, so
+there is no CORS configuration to manage in development.
 
----
-
-## 📁 Estrutura
+## Project layout
 
 ```
 .
 ├── backend/
-│   └── api.py                 # API FastAPI (config / status / chat SSE)
-├── frontend/                  # App React + Vite + LeafyGreen (UI oficial MongoDB)
+│   └── api.py                 # FastAPI app (config / status / chat SSE)
+├── frontend/                  # React + Vite + LeafyGreen client
 │   └── src/
-│       ├── App.jsx            # Orquestração + estado
-│       ├── api.js             # axios (config/status) + fetch SSE (chat)
+│       ├── App.jsx            # State and orchestration
+│       ├── api.js             # config/status calls + SSE chat stream
 │       └── components/        # Sidebar, TopBar, KpiRow, ChatMessage, EngineStrip, Sources, ...
-├── agent.py                   # retrieve_context (hybrid search + RRF + rerank, com ACL)
-├── ingest.py                  # Ingestão multi-formato (com --nivel para ACL)
-├── setup_db.py                # Setup de collections e índices (vector_index + text_index)
-├── config.py                  # Configuração central via env vars
-├── db.py                      # Cliente MongoDB compartilhado (pool de conexões)
-├── client_config.json         # Perguntas/followups por cliente (não versionado)
-├── client_config.example.json # Exemplo de configuração de cliente
+├── agent.py                   # retrieve_context: hybrid search + RRF + re-rank, with ACL
+├── ingest.py                  # Multi-format ingestion (--nivel sets the access level)
+├── setup_db.py                # Creates collections and indexes (vector_index + text_index)
+├── config.py                  # Central configuration from environment variables
+├── db.py                      # Shared MongoDB client (connection pool)
+├── client_config.json         # Per-tenant questions/follow-ups (not committed)
+├── client_config.example.json # Example tenant configuration
 ├── requirements.txt
 ├── .env.example
-├── data/                      # Documentos do cliente (não versionados)
-└── assets/                    # Assets visuais do cliente (não versionados)
+├── data/                      # Tenant documents (not committed)
+└── assets/                    # Tenant visual assets (not committed)
 ```
 
----
+## Adding a tenant
 
-## ⚙️ Adicionando um novo cliente
+1. Set the tenant values in `.env`.
+2. Place the document under `data/`.
+3. Copy `client_config.example.json` to `client_config.json` and customize it.
+4. Run `python setup_db.py`, then `python ingest.py data/document.pdf`, then start
+   the backend and frontend.
 
-1. Configure `.env` com os dados do novo cliente
-2. Coloque o documento em `data/`
-3. Copie `client_config.example.json` → `client_config.json` e personalize
-4. `python setup_db.py` → `python ingest.py data/documento.pdf` → `uvicorn backend.api:app --port 8180` + `cd frontend && npm run dev`
+Each tenant uses an isolated MongoDB database (`rag_<CLIENT_ID>`), so projects do
+not interfere with one another.
 
-Cada cliente usa um banco MongoDB isolado (`rag_<CLIENT_ID>`), sem interferência entre projetos.
+## Environment variables
 
----
-
-## 🔑 Variáveis de ambiente — referência completa
-
-| Variável | Obrigatória | Descrição |
-|----------|-------------|-----------|
-| `MONGO_URI` | ✅ | Connection string do MongoDB Atlas |
-| `VOYAGE_API_KEY` | ✅ | Chave da API VoyageAI |
-| `ANTHROPIC_API_KEY` | ✅ | Chave da API Anthropic |
-| `CLIENT_ID` | ✅ | ID do cliente (define nome do banco) |
-| `CLIENT_NAME` | ✅ | Nome exibido na interface |
-| `DOCUMENT_TITLE` | ✅ | Título do documento |
-| `DOCUMENT_DESCRIPTION` | — | Descrição exibida no header |
-| `DB_NAME` | — | Nome do banco (padrão: `rag_<CLIENT_ID>`) |
-| `SYSTEM_PROMPT_EXTRA` | — | Instrução extra para o system prompt |
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `MONGO_URI` | yes | MongoDB Atlas connection string |
+| `VOYAGE_API_KEY` | yes | VoyageAI API key |
+| `ANTHROPIC_API_KEY` | yes | Anthropic API key |
+| `CLIENT_ID` | yes | Tenant identifier (defines the database name) |
+| `CLIENT_NAME` | yes | Name shown in the interface |
+| `DOCUMENT_TITLE` | yes | Document title |
+| `DOCUMENT_DESCRIPTION` | no | Description shown in the header |
+| `DB_NAME` | no | Database name (defaults to `rag_<CLIENT_ID>`) |
+| `SYSTEM_PROMPT_EXTRA` | no | Extra instruction appended to the system prompt |

@@ -1,14 +1,14 @@
 """
-API FastAPI da POC RAG — MongoDB Atlas Vector Search.
+FastAPI backend for the RAG proof of concept on MongoDB Atlas Vector Search.
 
-Substitui o antigo app.py (Streamlit). Expõe a lógica de RAG (busca vetorial +
-reranking + geração com Claude) para o frontend React + LeafyGreen via HTTP/SSE.
+Exposes the RAG pipeline (vector search + re-ranking + generation with Claude)
+to the React + LeafyGreen frontend over HTTP/SSE.
 
-Reaproveita:
+Reuses:
   - agent.retrieve_context(query) -> (context, sources, stats)
   - config (CLIENT_NAME, DOCUMENT_TITLE, ..., QUESTIONS, FOLLOWUPS)
 
-Rodar:  uvicorn backend.api:app --reload --port 8180  (a partir da raiz do projeto)
+Run:  uvicorn backend.api:app --reload --port 8180  (from the project root)
 """
 import os
 import re
@@ -41,7 +41,7 @@ load_dotenv()
 
 app = FastAPI(title="RAG · MongoDB Atlas Vector Search (POC)")
 
-# CORS liberado para dev (o Vite também faz proxy /api -> :8180).
+# CORS open for development (the Vite dev server also proxies /api -> :8180).
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -49,13 +49,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ── Metadados da stack (vitrine do Vector Search) ────────────────────────────────
+# Stack metadata (surfaced in the UI)
 EMBED_MODEL = "voyage-3"
 EMBED_DIM = 1024
 RERANK_MODEL = "rerank-2"
 VECTOR_INDEX = "vector_index"
 
-# ── Remove emoji inicial (mesma regra do app antigo) ─────────────────────────────
+# Strip a leading emoji from configured question/follow-up strings
 _EMOJI_RE = re.compile(
     r"^[\U0001F000-\U0001FAFF\U00002600-\U000027BF\U0001F1E6-\U0001F1FF️‍←-⇿⬀-⯿]+\s*"
 )
@@ -65,7 +65,7 @@ def _clean(text: str) -> str:
     return _EMOJI_RE.sub("", text).strip()
 
 
-# ── Status REAL do Atlas (ping de verdade, com cache curto) ──────────────────────
+# Real Atlas status (actual ping, with a short cache)
 _status_lock = threading.Lock()
 _status_cache = {"ts": 0.0, "online": False, "chunks": None}
 
@@ -89,7 +89,8 @@ def get_status(force: bool = False):
         return _status_cache["online"], _status_cache["chunks"]
 
 
-# ── Prompt (portado do app.py) ───────────────────────────────────────────────────
+# System prompt — kept in Portuguese so the assistant answers TJGO users in
+# their language (the source document is Portuguese).
 SYSTEM_PROMPT = """Você é um assistente especializado em {document_title} — {client_name}.
 Responda usando APENAS o contexto fornecido. Seja formal, objetivo e preciso.
 Se a informação não estiver no contexto, diga claramente.
@@ -117,13 +118,13 @@ def _sse(data: dict) -> str:
     return f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 
-# ── ACL: perfil de acesso → níveis permitidos ───────────────────────────────────
+# Access control: map an access profile to the allowed levels
 def _levels_for(access_level: str) -> list:
-    # "publico" só vê público; "restrito" vê tudo (público + restrito)
+    # "publico" sees public only; "restrito" sees everything (public + restricted)
     return ["publico"] if access_level == "publico" else ["publico", "restrito"]
 
 
-# ── Memória de conversa persistida no MongoDB (mesma plataforma) ─────────────────
+# Conversation memory persisted in MongoDB (same platform as the vectors)
 def _save_conversation(thread_id, messages):
     if not thread_id:
         return
@@ -140,7 +141,7 @@ def _save_conversation(thread_id, messages):
             upsert=True,
         )
     except Exception:
-        pass  # persistência nunca deve derrubar o chat
+        pass  # persistence must never break the chat
 
 
 def _load_conversation(thread_id):
@@ -154,7 +155,7 @@ def _load_conversation(thread_id):
         return []
 
 
-# ── Endpoints ────────────────────────────────────────────────────────────────────
+# Endpoints
 @app.get("/api/config")
 def api_config():
     return {
@@ -178,20 +179,20 @@ def api_status(force: bool = False):
 
 class ChatBody(BaseModel):
     question: str
-    messages: list[dict] = []          # histórico anterior (sem a pergunta atual)
-    thread_id: str | None = None       # para persistir a conversa
-    access_level: str = "restrito"     # "publico" | "restrito" (perfil de acesso)
+    messages: list[dict] = []          # prior history (excluding the current question)
+    thread_id: str | None = None       # used to persist the conversation
+    access_level: str = "restrito"     # "publico" | "restrito" (access profile)
 
 
 @app.get("/api/history/{thread_id}")
 def api_history(thread_id: str):
-    """Retoma uma conversa persistida no MongoDB."""
+    """Resume a conversation persisted in MongoDB."""
     return {"thread_id": thread_id, "messages": _load_conversation(thread_id)}
 
 
 @app.post("/api/chat")
 def api_chat(body: ChatBody):
-    """Stream SSE: eventos {type: meta|token|done|error}."""
+    """SSE stream of {type: meta|token|done|error} events."""
 
     def gen():
         online, _ = get_status()
@@ -227,9 +228,9 @@ def api_chat(body: ChatBody):
                 streaming=True,
                 api_key=os.environ["ANTHROPIC_API_KEY"],
             )
-            # Mensagens construídas diretamente (sem ChatPromptTemplate): o
-            # contexto do PDF e o histórico podem conter chaves `{}`, que um
-            # template interpretaria como variáveis e quebraria a requisição.
+            # Build the messages directly (no ChatPromptTemplate): the PDF context
+            # and history may contain `{}` braces, which a template would treat as
+            # variables and fail on.
             lc_messages = [
                 SystemMessage(
                     content=SYSTEM_PROMPT.format(
@@ -252,7 +253,7 @@ def api_chat(body: ChatBody):
                     full += chunk.content
                     yield _sse({"type": "token", "delta": chunk.content})
 
-            # Persiste a conversa no MongoDB (mesma plataforma dos vetores)
+            # Persist the conversation in MongoDB (same platform as the vectors)
             _save_conversation(
                 body.thread_id,
                 body.messages

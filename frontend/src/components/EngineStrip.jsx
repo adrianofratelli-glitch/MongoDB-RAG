@@ -1,6 +1,6 @@
 import { C } from '../theme'
 
-// Vitrine do Atlas Hybrid Search: vetorial + léxico -> RRF -> rerank-2 + metadados.
+// Atlas hybrid-search showcase: vector + lexical -> RRF -> rerank-2, with metadata.
 export default function EngineStrip({ stats, elapsedMs }) {
   if (!stats) return null
   const vec = stats.vector_hits ?? '—'

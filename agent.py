@@ -40,7 +40,7 @@ class AgentState(TypedDict):
 
 
 ALL_ACCESS = ["publico", "restrito"]
-RRF_K = 60  # constante padrão de Reciprocal Rank Fusion
+RRF_K = 60  # standard Reciprocal Rank Fusion constant
 
 
 def _vector_pipeline(embedding, top_k, access_levels):
@@ -73,9 +73,9 @@ def _lexical_pipeline(query, top_k, access_levels):
 
 def retrieve_context(query: str, top_k: int = 15,
                      access_levels: list | None = None) -> tuple[str, list[dict], dict]:
-    """Hybrid search: busca vetorial ∪ léxica → RRF → rerank-2, com filtro de ACL.
+    """Hybrid search: vector ∪ lexical retrieval -> RRF -> rerank-2, with an ACL filter.
 
-    access_levels: níveis de acesso permitidos (ex.: ["publico"]). None = acesso total.
+    access_levels: allowed access levels (e.g. ["publico"]). None means full access.
     """
     history_keywords = ["pergunt", "anterior", "sessão", "conversa", "falei", "histórico"]
     if any(k in query.lower() for k in history_keywords):
@@ -88,14 +88,14 @@ def retrieve_context(query: str, top_k: int = 15,
 
     embedding = voyage.embed([query], model="voyage-3", input_type="query").embeddings[0]
 
-    # 1) Recupera das duas modalidades em paralelo conceitual (duas agregações)
+    # 1) Retrieve from both modalities (two aggregations)
     vector_results = list(collection.aggregate(_vector_pipeline(embedding, top_k, levels)))
     try:
         lexical_results = list(collection.aggregate(_lexical_pipeline(query, top_k, levels)))
     except Exception:
-        lexical_results = []  # tolerante: se o índice léxico falhar, segue só com vetorial
+        lexical_results = []  # tolerant: if the lexical index fails, fall back to vector only
 
-    # 2) Reciprocal Rank Fusion (RRF) — funde os dois rankings por _id
+    # 2) Reciprocal Rank Fusion (RRF): merge the two rankings by _id
     fused: dict = {}
 
     def _fuse(rows, score_key, matched):
@@ -119,7 +119,7 @@ def retrieve_context(query: str, top_k: int = 15,
 
     candidates = sorted(fused.values(), key=lambda x: x["rrf"], reverse=True)
 
-    # 3) Rerank-2 (VoyageAI) sobre o conjunto fundido
+    # 3) rerank-2 (VoyageAI) over the fused set
     documents = [c["text"] for c in candidates]
     try:
         rr = voyage.rerank(query, documents, model="rerank-2", top_k=min(8, len(documents)))
@@ -153,11 +153,11 @@ def retrieve_context(query: str, top_k: int = 15,
             seen_pages.add(page)
 
     stats = {
-        "num_candidates": top_k * 15,        # numCandidates do $vectorSearch
-        "vector_hits": len(vector_results),  # retornados pela busca vetorial
-        "lexical_hits": len(lexical_results),  # retornados pela busca léxica (Atlas Search)
-        "fused": len(fused),                 # candidatos únicos após RRF
-        "reranked": len(top_results),        # após rerank-2
+        "num_candidates": top_k * 15,        # $vectorSearch numCandidates
+        "vector_hits": len(vector_results),  # returned by vector search
+        "lexical_hits": len(lexical_results),  # returned by lexical search (Atlas Search)
+        "fused": len(fused),                 # unique candidates after RRF
+        "reranked": len(top_results),        # after rerank-2
         "index": "vector_index + text_index",
         "embed_model": "voyage-3",
         "rerank_model": "rerank-2",
@@ -169,8 +169,8 @@ def retrieve_context(query: str, top_k: int = 15,
     return "\n\n---\n\n".join(parts), sources, stats
 
 
-# Lazy: evita instanciar o ChatAnthropic no import (derrubaria a API se a
-# ANTHROPIC_API_KEY não estivesse no ambiente, mesmo sem usar o grafo).
+# Lazy: avoid instantiating ChatAnthropic at import time, which would break the
+# API if ANTHROPIC_API_KEY were absent even when the graph is not used.
 _llm = None
 
 

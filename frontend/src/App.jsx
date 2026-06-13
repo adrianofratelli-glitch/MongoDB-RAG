@@ -76,7 +76,7 @@ export default function App() {
         onDone: () => setStreaming(false),
         onError: (msg) => {
           setStreaming(false)
-          setMessages((prev) => prev.slice(0, -2)) // desfaz user + placeholder
+          setMessages((prev) => prev.slice(0, -2)) // undo the user + placeholder messages
           setTotalQueries((n) => Math.max(0, n - 1))
           setError(msg)
           refreshStatus(true)

@@ -1,13 +1,14 @@
-// Stub de @emotion/server/create-instance para o browser.
-// @leafygreen-ui/emotion chama createEmotionServer(cache) no topo do módulo, o que
-// puxa html-tokenize/readable-stream (APIs Node) e quebra no navegador. Essas funções
-// só servem para SSR (extração de CSS crítico), que um SPA cliente nunca usa.
+// Browser stub for @emotion/server/create-instance.
+// @leafygreen-ui/emotion calls createEmotionServer(cache) at module load, which
+// pulls in html-tokenize/readable-stream (Node APIs) and breaks in the browser.
+// Those functions only matter for SSR (critical-CSS extraction), which a
+// client-only SPA never uses.
 export default function createEmotionServer() {
   return {
     extractCritical: (html) => ({ html, ids: [], css: '' }),
     renderStylesToString: (html) => html,
     renderStylesToNodeStream: () => {
-      throw new Error('renderStylesToNodeStream não é suportado no browser')
+      throw new Error('renderStylesToNodeStream is not supported in the browser')
     },
   }
 }

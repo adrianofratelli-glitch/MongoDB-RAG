@@ -16,15 +16,15 @@ def setup() -> None:
     for col in collections:
         if col not in existing:
             db.create_collection(col)
-            print(f"✅ Collection criada: {col}")
+            print(f"Created collection: {col}")
         else:
-            print(f"⏭️  Já existe: {col}")
+            print(f"Already exists: {col}")
 
-    # ── Índices Atlas Search (Hybrid Search) ────────────────────────────────────
+    # Atlas Search indexes (hybrid search)
     docs = db["documents"]
     have = {ix["name"] for ix in docs.list_search_indexes()}
 
-    # Índice vetorial (voyage-3, 1024d) + campo de filtro para ACL
+    # Vector index (voyage-3, 1024d) plus a filter field for access control
     vector_def = {
         "fields": [
             {"type": "vector", "path": "embedding", "numDimensions": 1024, "similarity": "cosine"},
@@ -33,12 +33,12 @@ def setup() -> None:
     }
     if "vector_index" not in have:
         docs.create_search_index({"name": "vector_index", "type": "vectorSearch", "definition": vector_def})
-        print("✅ Índice vetorial criado: vector_index (com filtro de ACL)")
+        print("Created vector index: vector_index (with access-control filter)")
     else:
         docs.update_search_index("vector_index", vector_def)
-        print("🔄 Índice vetorial atualizado: vector_index (garante filtro de ACL)")
+        print("Updated vector index: vector_index (ensures access-control filter)")
 
-    # Índice léxico (Atlas Search / BM25) para o componente lexical do hybrid
+    # Lexical index (Atlas Search / BM25) for the lexical leg of hybrid search
     if "text_index" not in have:
         docs.create_search_index({
             "name": "text_index", "type": "search",
@@ -47,16 +47,16 @@ def setup() -> None:
                 "metadata": {"type": "document", "fields": {"nivel_acesso": {"type": "token"}}},
             }}},
         })
-        print("✅ Índice léxico criado: text_index")
+        print("Created lexical index: text_index")
     else:
-        print("⏭️  Índice léxico já existe: text_index")
+        print("Lexical index already exists: text_index")
 
-    print(f"\n📊 Collections em '{DB_NAME}':")
+    print(f"\nCollections in '{DB_NAME}':")
     for col in db.list_collection_names():
         print(f"  {col}: {db[col].count_documents({})} docs")
 
     client.close()
-    print("\n✅ Setup concluído!")
+    print("\nSetup complete.")
 
 
 if __name__ == "__main__":
