@@ -1,22 +1,25 @@
-# Ambientes Virtuais e Cache
+# Virtual environments and cache
 .venv/
 __pycache__/
 *.pyc
 .DS_Store
 
-# Variáveis de Ambiente — NUNCA commitar
+# Environment variables — never commit
 .env
 .env.local
 
-# Documentos e assets dos clientes — dados sensíveis
+# Client documents and assets — sensitive data
 data/*
 !data/.gitkeep
 assets/*
 !assets/.gitkeep
 
-# Configuração específica do cliente (gerada a partir do example)
+# Per-client configuration (generated from the example)
 client_config.json
 
-# Arquivos de backup do editor
+# Editor backup files
 *.save
 
+# Local editor/IDE settings
+.idea/
+.vscode/
