@@ -13,7 +13,12 @@ DB_NAME = os.getenv("DB_NAME", f"rag_{CLIENT_ID}")
 SYSTEM_PROMPT_EXTRA = os.getenv("SYSTEM_PROMPT_EXTRA", "")
 
 _cfg_path = Path("client_config.json")
-_cfg: dict = json.loads(_cfg_path.read_text(encoding="utf-8")) if _cfg_path.exists() else {}
+_cfg: dict = {}
+if _cfg_path.exists():
+    try:
+        _cfg = json.loads(_cfg_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as e:
+        raise RuntimeError(f"client_config.json is not valid JSON: {e}") from e
 
 QUESTIONS: list[str] = _cfg.get("questions", [
     "📋 O que este documento aborda?",

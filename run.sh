@@ -1,48 +1,74 @@
 #!/usr/bin/env bash
 #
-# Start the POC locally:
+# Start/stop the POC locally. Each server runs detached (nohup) so the app
+# keeps running after you close the terminal. Re-running start is safe: it
+# only launches whichever server is not already up (heals a partial state).
 #   - Backend  : FastAPI    at http://localhost:8180
 #   - Frontend : React+Vite at http://localhost:5180  (proxies /api -> :8180)
 #
-# Usage:  ./run.sh
+# Usage:
+#   ./run.sh          start (or heal) both
+#   ./run.sh stop     stop both
+#   ./run.sh status   show status
 #
-set -euo pipefail
+set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"
 
-# Activate the Python virtual environment, if present
-if [ -d ".venv" ]; then
-  # shellcheck disable=SC1091
-  source .venv/bin/activate
-fi
+BACKEND_PORT=8180
+FRONTEND_PORT=5180
+LOG_DIR="$ROOT/.logs"
 
-# Fail fast, with diagnostics, if a dedicated port is already in use
-for port in 8180 5180; do
-  pid="$(lsof -nP -iTCP:"$port" -sTCP:LISTEN -t 2>/dev/null | head -1 || true)"
-  if [ -n "$pid" ]; then
-    echo "Port $port is already in use by process $pid:"
-    ps -p "$pid" -o command= | cut -c1-100
-    echo "  To free it:  kill $pid    (then run ./run.sh again)"
-    exit 1
-  fi
-done
+pid_on_port() { lsof -nP -iTCP:"$1" -sTCP:LISTEN -t 2>/dev/null | head -1; }
+cwd_of_pid()  { lsof -p "$1" -a -d cwd -Fn 2>/dev/null | sed -n 's/^n//p'; }
+mine()        { case "$(cwd_of_pid "$1")" in "$ROOT"*) return 0 ;; *) return 1 ;; esac; }
 
-# Install frontend dependencies on first run
-if [ ! -d "frontend/node_modules" ]; then
-  echo "Installing frontend dependencies (first run)..."
-  (cd frontend && npm install)
-fi
+status() {
+  for pair in "backend $BACKEND_PORT" "frontend $FRONTEND_PORT"; do
+    # shellcheck disable=SC2086
+    set -- $pair
+    pid="$(pid_on_port "$2" || true)"
+    if [ -n "$pid" ]; then echo "$1 (:$2): running (pid $pid)"; else echo "$1 (:$2): stopped"; fi
+  done
+}
 
-# Start the backend in the background
-echo "Backend  : http://localhost:8180"
-uvicorn backend.api:app --port 8180 &
-BACKEND_PID=$!
+stop() {
+  for port in "$FRONTEND_PORT" "$BACKEND_PORT"; do
+    pid="$(pid_on_port "$port" || true)"
+    [ -z "$pid" ] && continue
+    if mine "$pid"; then kill "$pid" 2>/dev/null && echo "stopped :$port (pid $pid)"
+    else echo "port $port held by another project — left running"; fi
+  done
+}
 
-# Stop the backend on exit (Ctrl+C)
-cleanup() { kill "$BACKEND_PID" 2>/dev/null || true; }
-trap cleanup EXIT INT TERM
+start() {
+  mkdir -p "$LOG_DIR"
+  [ -d frontend/node_modules ] || { echo "Installing frontend dependencies (first run)..."; (cd frontend && npm install); }
 
-# Start the frontend in the foreground
-echo "Frontend : http://localhost:5180"
-npm --prefix frontend run dev
+  # Backend
+  pid="$(pid_on_port "$BACKEND_PORT" || true)"
+  if [ -z "$pid" ]; then
+    nohup .venv/bin/uvicorn backend.api:app --port "$BACKEND_PORT" > "$LOG_DIR/backend.log" 2>&1 < /dev/null &
+    echo "backend  started  -> http://localhost:$BACKEND_PORT"
+  elif mine "$pid"; then echo "backend  already up (pid $pid)"
+  else echo "Port $BACKEND_PORT is used by another project — aborting."; exit 1; fi
+
+  # Frontend — run vite directly (not via npm) so it survives the terminal closing
+  pid="$(pid_on_port "$FRONTEND_PORT" || true)"
+  if [ -z "$pid" ]; then
+    ( cd frontend && nohup node_modules/.bin/vite > "$LOG_DIR/frontend.log" 2>&1 < /dev/null & )
+    echo "frontend started  -> http://localhost:$FRONTEND_PORT"
+  elif mine "$pid"; then echo "frontend already up (pid $pid)"
+  else echo "Port $FRONTEND_PORT is used by another project — aborting."; exit 1; fi
+
+  echo ""
+  echo "Open http://localhost:$FRONTEND_PORT   (logs in .logs/ · stop with ./run.sh stop)"
+}
+
+case "${1:-start}" in
+  start)  start ;;
+  stop)   stop ;;
+  status) status ;;
+  *) echo "Usage: ./run.sh [start|stop|status]"; exit 1 ;;
+esac

@@ -34,7 +34,7 @@ graph TD
 
 | Step | Component | Description |
 |------|-----------|-------------|
-| 1 | Ingestion | Document (PDF/DOCX/TXT/CSV) is split into chunks, embedded with `voyage-3`, and stored in Atlas with an access-level tag |
+| 1 | Ingestion | Document (PDF, DOCX, TXT, CSV, Markdown, HTML, JSON, XLSX, PPTX) is split into chunks, embedded with `voyage-3`, and stored in Atlas with an access-level tag |
 | 2 | Hybrid search | The query runs vector (ANN) and lexical (BM25) search in parallel, each filtered by access level |
 | 3 | Fusion | The two rankings are merged with Reciprocal Rank Fusion (RRF) |
 | 4 | Re-ranking | `rerank-2` reorders the fused candidates; the top 8 are kept |
@@ -48,7 +48,7 @@ graph TD
 - **Access control** — `nivel_acesso` filter (public / restricted) applied on both search stages
 - **Streaming** — token-by-token answers over Server-Sent Events
 - **Persistent memory** — conversations stored in MongoDB and resumable by thread ID
-- **Multi-format ingestion** — PDF, DOCX, TXT, CSV
+- **Multi-format ingestion** — PDF, DOCX, TXT, CSV, Markdown, HTML, JSON, XLSX, PPTX
 - **Multi-tenant** — one Atlas database per tenant, configured through `.env`
 - **Configurable prompts** — starter questions and follow-ups per tenant via `client_config.json`
 - **Export** — conversations exportable to TXT or JSON
@@ -115,7 +115,7 @@ python setup_db.py
 ### 4. Ingest a document
 
 ```bash
-# PDF, DOCX, TXT, or CSV
+# PDF, DOCX, TXT, CSV, Markdown, HTML, JSON, XLSX, or PPTX
 python ingest.py path/to/document.pdf
 
 # Re-index a document that is already stored
@@ -155,7 +155,8 @@ npm run dev        # served at http://localhost:5180, proxies /api to :8180
 ```
 
 Open **http://localhost:5180**. The frontend proxies `/api` to the backend, so
-there is no CORS configuration to manage in development.
+there is no CORS configuration to manage in development. For any other origin
+(a deployed frontend, a different port), set `ALLOWED_ORIGINS`.
 
 ## Project layout
 
@@ -205,3 +206,4 @@ not interfere with one another.
 | `DOCUMENT_DESCRIPTION` | no | Description shown in the header |
 | `DB_NAME` | no | Database name (defaults to `rag_<CLIENT_ID>`) |
 | `SYSTEM_PROMPT_EXTRA` | no | Extra instruction appended to the system prompt |
+| `ALLOWED_ORIGINS` | no | Comma-separated CORS origins allowed to call the API (defaults to the local Vite dev server) |

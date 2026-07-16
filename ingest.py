@@ -1,17 +1,81 @@
 import os
 import sys
+import json
 import time
 import argparse
 from pathlib import Path
-from pymongo import MongoClient
+from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 import voyageai
 from config import DB_NAME, CLIENT_ID
+from db import get_client
 from dotenv import load_dotenv
 
 load_dotenv()
 
-SUPPORTED_FORMATS = {".pdf", ".docx", ".doc", ".txt", ".csv"}
+SUPPORTED_FORMATS = {
+    ".pdf", ".docx", ".doc", ".txt", ".csv",
+    ".md", ".markdown", ".html", ".htm", ".json", ".xlsx", ".xls", ".pptx",
+}
+
+
+class JSONTextLoader:
+    """One Document per top-level record (or the whole file if it's a single object)."""
+
+    def __init__(self, file_path):
+        self.file_path = file_path
+
+    def load(self):
+        data = json.loads(Path(self.file_path).read_text(encoding="utf-8"))
+        records = data if isinstance(data, list) else [data]
+        return [
+            Document(
+                page_content=json.dumps(r, ensure_ascii=False, indent=2),
+                metadata={"page": i},
+            )
+            for i, r in enumerate(records)
+        ]
+
+
+class ExcelTextLoader:
+    """One Document per worksheet, rendered as tab-separated rows."""
+
+    def __init__(self, file_path):
+        self.file_path = file_path
+
+    def load(self):
+        from openpyxl import load_workbook
+        wb = load_workbook(self.file_path, data_only=True, read_only=True)
+        docs = []
+        for i, sheet in enumerate(wb.worksheets):
+            lines = [
+                "\t".join("" if c is None else str(c) for c in row)
+                for row in sheet.iter_rows(values_only=True)
+            ]
+            docs.append(Document(
+                page_content="\n".join(lines),
+                metadata={"page": i, "sheet": sheet.title},
+            ))
+        return docs
+
+
+class PowerPointTextLoader:
+    """One Document per slide."""
+
+    def __init__(self, file_path):
+        self.file_path = file_path
+
+    def load(self):
+        from pptx import Presentation
+        prs = Presentation(self.file_path)
+        docs = []
+        for i, slide in enumerate(prs.slides):
+            texts = [
+                shape.text for shape in slide.shapes
+                if getattr(shape, "has_text_frame", False) and shape.text
+            ]
+            docs.append(Document(page_content="\n".join(texts), metadata={"page": i}))
+        return docs
 
 
 def get_loader(file_path: str):
@@ -22,12 +86,21 @@ def get_loader(file_path: str):
     if ext in (".docx", ".doc"):
         from langchain_community.document_loaders import Docx2txtLoader
         return Docx2txtLoader(file_path)
-    if ext == ".txt":
+    if ext in (".txt", ".md", ".markdown"):
         from langchain_community.document_loaders import TextLoader
         return TextLoader(file_path, encoding="utf-8")
     if ext == ".csv":
         from langchain_community.document_loaders import CSVLoader
         return CSVLoader(file_path)
+    if ext in (".html", ".htm"):
+        from langchain_community.document_loaders import BSHTMLLoader
+        return BSHTMLLoader(file_path, open_encoding="utf-8")
+    if ext == ".json":
+        return JSONTextLoader(file_path)
+    if ext in (".xlsx", ".xls"):
+        return ExcelTextLoader(file_path)
+    if ext == ".pptx":
+        return PowerPointTextLoader(file_path)
     raise ValueError(
         f"Unsupported format: '{ext}'. "
         f"Accepted formats: {', '.join(sorted(SUPPORTED_FORMATS))}"
@@ -40,7 +113,7 @@ def ingest(file_path: str, reset: bool = False, nivel_acesso: str = "publico") -
         print(f"File not found: {file_path}")
         sys.exit(1)
 
-    client = MongoClient(os.environ["MONGO_URI"])
+    client = get_client()
     collection = client[DB_NAME]["documents"]
 
     source_name = path.stem
@@ -51,7 +124,6 @@ def ingest(file_path: str, reset: bool = False, nivel_acesso: str = "publico") -
             f"'{source_name}' is already indexed ({existing} chunks). "
             "Use --reset to re-index."
         )
-        client.close()
         return
 
     if reset and existing > 0:
@@ -109,12 +181,12 @@ def ingest(file_path: str, reset: bool = False, nivel_acesso: str = "publico") -
     print(f"\nInserting {len(docs_to_insert)} documents into Atlas (DB: {DB_NAME})...")
     collection.insert_many(docs_to_insert)
     print("Ingestion complete.")
-    client.close()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Ingest documents into the RAG store (PDF, DOCX, TXT, CSV)"
+        description="Ingest documents into the RAG store "
+        "(PDF, DOCX, TXT, CSV, Markdown, HTML, JSON, XLSX, PPTX)"
     )
     parser.add_argument(
         "file",

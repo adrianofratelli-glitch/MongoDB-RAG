@@ -23,3 +23,6 @@ client_config.json
 # Local editor/IDE settings
 .idea/
 .vscode/
+
+# Runtime logs from run.sh
+.logs/

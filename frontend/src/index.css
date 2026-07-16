@@ -10,6 +10,14 @@
   --border-subtle: rgba(255, 255, 255, 0.06);
   --border-accent: rgba(0, 237, 100, 0.25);
   --mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Canonical names shared across this workspace's PoVs (same values,
+     aliased rather than renamed to avoid touching every existing usage). */
+  --bg-primary: var(--bg);
+  --bg-secondary: var(--bg-sec);
+  --accent: var(--green);
+  --text-pri: var(--text);
+  --text-muted: var(--sub);
 }
 
 * { box-sizing: border-box; }

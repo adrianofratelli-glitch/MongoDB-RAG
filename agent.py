@@ -1,3 +1,4 @@
+import logging
 import os
 import voyageai
 from typing import Annotated, TypedDict, List
@@ -12,6 +13,8 @@ from db import get_client
 from dotenv import load_dotenv
 
 load_dotenv()
+
+logger = logging.getLogger("tjgo_rag.agent")
 
 MODEL = "claude-sonnet-4-6"
 
@@ -41,6 +44,16 @@ class AgentState(TypedDict):
 
 ALL_ACCESS = ["publico", "restrito"]
 RRF_K = 60  # standard Reciprocal Rank Fusion constant
+
+# Lazy singleton, mirrors db.get_client() — avoids re-instantiating per call.
+_voyage = None
+
+
+def _get_voyage() -> voyageai.Client:
+    global _voyage
+    if _voyage is None:
+        _voyage = voyageai.Client(api_key=os.environ["VOYAGE_API_KEY"])
+    return _voyage
 
 
 def _vector_pipeline(embedding, top_k, access_levels):
@@ -83,7 +96,7 @@ def retrieve_context(query: str, top_k: int = 15,
 
     levels = access_levels if access_levels else ALL_ACCESS
 
-    voyage = voyageai.Client(api_key=os.environ["VOYAGE_API_KEY"])
+    voyage = _get_voyage()
     collection = get_client()[DB_NAME]["documents"]
 
     embedding = voyage.embed([query], model="voyage-3", input_type="query").embeddings[0]
@@ -93,6 +106,7 @@ def retrieve_context(query: str, top_k: int = 15,
     try:
         lexical_results = list(collection.aggregate(_lexical_pipeline(query, top_k, levels)))
     except Exception:
+        logger.exception("lexical search failed — falling back to vector-only")
         lexical_results = []  # tolerant: if the lexical index fails, fall back to vector only
 
     # 2) Reciprocal Rank Fusion (RRF): merge the two rankings by _id
@@ -129,6 +143,7 @@ def retrieve_context(query: str, top_k: int = 15,
             c["rerank_score"] = round(item.relevance_score, 4)
             top_results.append(c)
     except Exception:
+        logger.exception("rerank failed — falling back to RRF order")
         top_results = candidates[:8]
         for c in top_results:
             c["rerank_score"] = round(c.get("vector_score") or c.get("search_score") or 0, 4)

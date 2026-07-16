@@ -10,13 +10,15 @@ Reuses:
 
 Run:  uvicorn backend.api:app --reload --port 8180  (from the project root)
 """
+import logging
 import os
 import re
 import json
 import time
 import threading
+from uuid import uuid4
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -25,6 +27,7 @@ from dotenv import load_dotenv
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 
+import observability
 from config import (
     CLIENT_NAME,
     DOCUMENT_TITLE,
@@ -33,21 +36,61 @@ from config import (
     QUESTIONS,
     FOLLOWUPS,
     DEFAULT_FOLLOWUPS,
+    SYSTEM_PROMPT_EXTRA,
 )
 from agent import retrieve_context, MODEL
 from db import get_client
 
 load_dotenv()
+observability.setup_logging()
+logger = logging.getLogger("tjgo_rag")
 
 app = FastAPI(title="RAG · MongoDB Atlas Vector Search (POC)")
 
-# CORS open for development (the Vite dev server also proxies /api -> :8180).
+# CORS: restricted to known origins by default (the Vite dev server proxies
+# /api -> :8180, so it never needs a cross-origin allowance in dev). Set
+# ALLOWED_ORIGINS to a comma-separated list for other deployments.
+_allowed_origins = [
+    o.strip() for o in os.getenv(
+        "ALLOWED_ORIGINS", "http://localhost:5180,http://127.0.0.1:5180"
+    ).split(",") if o.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=_allowed_origins,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
 )
+
+
+@app.middleware("http")
+async def _request_observability(request: Request, call_next):
+    """request_id on every response + per-route latency/error counters at /api/metrics."""
+    request_id = request.headers.get("x-request-id") or uuid4().hex[:16]
+    start = time.perf_counter()
+    try:
+        response = await call_next(request)
+    except Exception:
+        observability.metrics.observe(request.url.path, 500, (time.perf_counter() - start) * 1000)
+        logger.exception("unhandled error request_id=%s path=%s", request_id, request.url.path)
+        raise
+    elapsed_ms = (time.perf_counter() - start) * 1000
+    observability.metrics.observe(request.url.path, response.status_code, elapsed_ms)
+    response.headers["X-Request-Id"] = request_id
+    return response
+
+
+@app.get("/api/metrics")
+def api_metrics():
+    """In-process counters: requests/errors/latency per route + business counters."""
+    return observability.metrics.snapshot()
+
+
+@app.get("/api/health")
+def api_health():
+    return {"status": "ok"}
+
+MAX_QUESTION_LENGTH = 4000
 
 # Stack metadata (surfaced in the UI)
 EMBED_MODEL = "voyage-3"
@@ -77,6 +120,7 @@ def _ping_atlas():
         chunks = client[DB_NAME]["documents"].count_documents({})
         return True, chunks
     except Exception:
+        logger.exception("Atlas ping failed")
         return False, None
 
 
@@ -101,6 +145,7 @@ FORMATAÇÃO:
 - Tabela Markdown ao comparar múltiplas entidades, custos ou cronogramas.
 
 Finalize com: **Fontes:** [páginas consultadas]
+{extra}
 
 CONTEXTO:
 {context}"""
@@ -141,7 +186,7 @@ def _save_conversation(thread_id, messages):
             upsert=True,
         )
     except Exception:
-        pass  # persistence must never break the chat
+        logger.exception("conversation persistence failed thread_id=%s", thread_id)  # must never break the chat
 
 
 def _load_conversation(thread_id):
@@ -152,6 +197,7 @@ def _load_conversation(thread_id):
         return [{"role": m.get("role"), "content": m.get("content")}
                 for m in doc.get("messages", [])]
     except Exception:
+        logger.exception("conversation load failed thread_id=%s", thread_id)
         return []
 
 
@@ -194,6 +240,15 @@ def api_history(thread_id: str):
 def api_chat(body: ChatBody):
     """SSE stream of {type: meta|token|done|error} events."""
 
+    question = body.question.strip()
+    if not question:
+        raise HTTPException(status_code=422, detail="question must not be empty")
+    if len(question) > MAX_QUESTION_LENGTH:
+        raise HTTPException(
+            status_code=422,
+            detail=f"question exceeds {MAX_QUESTION_LENGTH} characters",
+        )
+
     def gen():
         online, _ = get_status()
         if not online:
@@ -209,7 +264,7 @@ def api_chat(body: ChatBody):
         try:
             t0 = time.perf_counter()
             context, sources, stats = retrieve_context(
-                body.question, access_levels=_levels_for(body.access_level)
+                question, access_levels=_levels_for(body.access_level)
             )
             elapsed_ms = int((time.perf_counter() - t0) * 1000)
             yield _sse(
@@ -218,7 +273,7 @@ def api_chat(body: ChatBody):
                     "stats": stats,
                     "sources": sources,
                     "elapsed_ms": elapsed_ms,
-                    "followups": _get_followups(body.question),
+                    "followups": _get_followups(question),
                 }
             )
 
@@ -237,6 +292,7 @@ def api_chat(body: ChatBody):
                         document_title=DOCUMENT_TITLE,
                         client_name=CLIENT_NAME,
                         context=context,
+                        extra=SYSTEM_PROMPT_EXTRA,
                     )
                 ),
                 *[
@@ -245,7 +301,7 @@ def api_chat(body: ChatBody):
                     )
                     for m in body.messages
                 ],
-                HumanMessage(content=body.question),
+                HumanMessage(content=question),
             ]
             full = ""
             for chunk in llm.stream(lc_messages):
@@ -257,11 +313,12 @@ def api_chat(body: ChatBody):
             _save_conversation(
                 body.thread_id,
                 body.messages
-                + [{"role": "user", "content": body.question},
+                + [{"role": "user", "content": question},
                    {"role": "assistant", "content": full}],
             )
             yield _sse({"type": "done"})
         except Exception as e:  # noqa: BLE001
+            logger.exception("chat turn failed thread_id=%s", body.thread_id)
             yield _sse(
                 {
                     "type": "error",
