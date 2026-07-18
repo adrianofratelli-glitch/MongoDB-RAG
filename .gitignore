@@ -7,6 +7,7 @@ __pycache__/
 # Environment variables — never commit
 .env
 .env.local
+.env.bak
 
 # Client documents and assets — sensitive data
 data/*
@@ -26,3 +27,6 @@ client_config.json
 
 # Runtime logs from run.sh
 .logs/
+
+# graphify knowledge-graph output (local tooling artifact, not app code)
+graphify-out/

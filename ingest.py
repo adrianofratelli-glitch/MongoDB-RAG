@@ -147,7 +147,9 @@ def ingest(file_path: str, reset: bool = False, nivel_acesso: str = "publico") -
 
     texts = [c.page_content for c in chunks]
     batch_size = 10  # conservative for the free tier (10K TPM)
-    docs_to_insert = []
+    # Paid Voyage tiers allow much higher RPM — tune the pause without editing code.
+    sleep_s = float(os.getenv("VOYAGE_SLEEP_S", "22"))
+    inserted = 0
 
     print("Generating embeddings (free tier may take several minutes for large documents)...")
     for i in range(0, len(texts), batch_size):
@@ -156,6 +158,7 @@ def ingest(file_path: str, reset: bool = False, nivel_acesso: str = "publico") -
 
         result = voyage.embed(batch_texts, model="voyage-3", input_type="document")
 
+        docs_to_insert = []
         for j, embedding in enumerate(result.embeddings):
             docs_to_insert.append({
                 "text": batch_chunks[j].page_content,
@@ -171,15 +174,19 @@ def ingest(file_path: str, reset: bool = False, nivel_acesso: str = "publico") -
                 },
             })
 
+        # Insert per batch: crash-safe (partial progress survives) and keeps
+        # memory flat for large documents.
+        collection.insert_many(docs_to_insert)
+        inserted += len(docs_to_insert)
+
         progress = min(i + batch_size, len(texts))
         print(f"   {progress}/{len(texts)} chunks | batch {i // batch_size + 1}", end="\r")
 
-        # Rate limit: 3 RPM, i.e. one request every 20s (with margin)
+        # Rate limit: free tier is 3 RPM (~20s between requests, with margin).
         if i + batch_size < len(texts):
-            time.sleep(22)
+            time.sleep(sleep_s)
 
-    print(f"\nInserting {len(docs_to_insert)} documents into Atlas (DB: {DB_NAME})...")
-    collection.insert_many(docs_to_insert)
+    print(f"\nInserted {inserted} documents into Atlas (DB: {DB_NAME}).")
     print("Ingestion complete.")
 
 

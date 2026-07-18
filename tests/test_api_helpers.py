@@ -31,10 +31,11 @@ class TestLevelsFor(unittest.TestCase):
     def test_restrito_sees_both(self):
         self.assertEqual(_levels_for("restrito"), ["publico", "restrito"])
 
-    def test_unknown_value_defaults_to_full_access(self):
-        """Fails open on an unexpected value — matches current documented behavior,
-        not necessarily the safest default; flags this if that default ever changes."""
-        self.assertEqual(_levels_for("qualquer-coisa"), ["publico", "restrito"])
+    def test_unknown_value_defaults_to_public_only(self):
+        """Default-deny: any value other than the exact "restrito" falls back to
+        public-only access."""
+        self.assertEqual(_levels_for("qualquer-coisa"), ["publico"])
+        self.assertEqual(_levels_for(""), ["publico"])
 
 
 if __name__ == "__main__":
