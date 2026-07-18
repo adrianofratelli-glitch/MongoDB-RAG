@@ -43,7 +43,7 @@ from db import get_client
 
 load_dotenv()
 observability.setup_logging()
-logger = logging.getLogger("tjgo_rag")
+logger = logging.getLogger("rag_poc")
 
 app = FastAPI(title="RAG · MongoDB Atlas Vector Search (POC)")
 
@@ -144,7 +144,7 @@ def get_status(force: bool = False):
 # be sent as its own cached block (see api_chat): the retrieved context always
 # differs per query and can't be cached, but this ~120-token instruction block
 # can, on every chat turn within the cache TTL.
-# Kept in Portuguese so the assistant answers TJGO users in their language.
+# Kept in Portuguese so the assistant answers end users in their language.
 SYSTEM_PROMPT_STATIC = """Você é um assistente especializado em {document_title} — {client_name}.
 Responda usando APENAS o contexto fornecido. Seja formal, objetivo e preciso.
 Se a informação não estiver no contexto, diga claramente.

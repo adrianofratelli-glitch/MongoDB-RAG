@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-logger = logging.getLogger("tjgo_rag.agent")
+logger = logging.getLogger("rag_poc.agent")
 
 MODEL = "claude-sonnet-4-6"
 

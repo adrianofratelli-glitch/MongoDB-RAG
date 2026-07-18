@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## What this is
 
 RAG proof-of-concept assistant on MongoDB Atlas Vector Search. Reference deployment answers
-questions about the TJGO PDTIC 2025-2027 plan, but the stack is document- and tenant-agnostic —
+questions about a public-sector IT planning document, but the stack is document- and tenant-agnostic —
 each tenant runs against its own Atlas database, configured entirely via `.env`.
 
 ## Commands
@@ -30,8 +30,8 @@ python ingest.py path/to/annex.pdf --nivel restrito   # ingest as access-restric
 
 python -m unittest discover -s tests -v   # 12 tests, pure logic — no live Atlas/Voyage/Anthropic needed
 
-docker build -t tjgo-rag .
-docker run --env-file .env -p 8080:8080 tjgo-rag   # single container, nginx + uvicorn, proxies /api
+docker build -t rag-poc .
+docker run --env-file .env -p 8080:8080 rag-poc   # single container, nginx + uvicorn, proxies /api
 
 ## Architecture
 
