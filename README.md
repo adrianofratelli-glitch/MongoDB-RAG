@@ -1,13 +1,27 @@
 # RAG Assistant — MongoDB Atlas Vector Search
 
-A retrieval-augmented generation (RAG) assistant for querying corporate documents
-in natural language. This proof of concept runs entirely on MongoDB Atlas: it
-combines vector and lexical search, re-ranks the candidates, and streams answers
-from Claude. The reference deployment answers questions about the TJGO PDTIC
-2025–2027 plan, but the stack is document- and tenant-agnostic.
+## The problem
 
-> Each tenant runs against its own MongoDB Atlas database, configured entirely
-> through environment variables.
+Public-sector organizations run on long, dense planning documents — strategic
+plans, IT master plans, budget annexes. The information people need every day
+(deadlines, budgets, project scope, security requirements) is buried across
+hundreds of pages, and the people who need it rarely have time to read them.
+The result: teams either interrupt the few colleagues who know the document by
+heart, or make decisions without checking it at all.
+
+## The solution
+
+A retrieval-augmented generation (RAG) assistant that lets anyone ask questions
+about a planning document in natural language and get precise, cited answers
+streamed back in seconds. The entire retrieval layer runs on **MongoDB Atlas**:
+vector search and lexical (BM25) search execute in parallel, their rankings are
+fused, a re-ranker picks the best passages, and Claude writes the answer using
+only that context — with page citations.
+
+The stack is **tenant-agnostic by design**: nothing about a specific client is
+hardcoded. Each organization gets its own Atlas database, its own document, its
+own branding and starter questions — all configured through environment
+variables and one JSON file. Onboarding a new client is configuration, not code.
 
 ## Architecture
 
@@ -43,14 +57,16 @@ graph TD
 
 ## Features
 
-- **Hybrid search** — vector (`$vectorSearch`) and lexical (Atlas Search / BM25) fused with RRF
+- **Hybrid search** — vector (`$vectorSearch`) and lexical (Atlas Search / BM25) fused with RRF; if either index fails, the other carries the query
 - **Re-ranking** — VoyageAI `rerank-2` reorders candidates before they reach the model
-- **Access control** — `nivel_acesso` filter (public / restricted) applied on both search stages
+- **Access control** — `nivel_acesso` filter (public / restricted) applied on both search stages, default-deny
 - **Streaming** — token-by-token answers over Server-Sent Events
+- **Prompt caching** — the stable instruction block (including a document outline) is cached by the Anthropic API, cutting cost and latency on every turn
 - **Persistent memory** — conversations stored in MongoDB and resumable by thread ID
 - **Multi-format ingestion** — PDF, DOCX, TXT, CSV, Markdown, HTML, JSON, XLSX, PPTX
 - **Multi-tenant** — one Atlas database per tenant, configured through `.env`
 - **Configurable prompts** — starter questions and follow-ups per tenant via `client_config.json`
+- **Observability** — request-id middleware, `/api/health`, `/api/metrics` (per-route latency + LLM token/cache counters)
 - **Export** — conversations exportable to TXT or JSON
 
 > This is a proof of concept. The access level is selected in the UI for
@@ -66,7 +82,6 @@ graph TD
 | Database / vector store | MongoDB Atlas (Vector Search + Atlas Search) |
 | Embeddings & re-ranker | VoyageAI (`voyage-3`, `rerank-2`) |
 | LLM | Anthropic Claude Sonnet 4.6 (`claude-sonnet-4-6`) |
-| Orchestration | LangGraph |
 | Document loading | LangChain community loaders |
 
 ## Getting started
@@ -126,7 +141,9 @@ python ingest.py path/to/restricted-annex.pdf --nivel restrito
 ```
 
 > The VoyageAI free tier is limited to 3 requests per minute, so the script
-> embeds in small batches with a 22-second pause between them.
+> embeds in small batches with a pause between them (tune with `VOYAGE_SLEEP_S`
+> on paid tiers). Each batch is inserted as soon as it is embedded, so partial
+> progress survives an interruption.
 
 ### 5. Configure starter questions (optional)
 
@@ -158,12 +175,20 @@ Open **http://localhost:5180**. The frontend proxies `/api` to the backend, so
 there is no CORS configuration to manage in development. For any other origin
 (a deployed frontend, a different port), set `ALLOWED_ORIGINS`.
 
+### Tests
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+Pure-logic tests — no live Atlas, Voyage, or Anthropic connection needed.
+
 ## Project layout
 
 ```
 .
 ├── backend/
-│   └── api.py                 # FastAPI app (config / status / chat SSE)
+│   └── api.py                 # FastAPI app (config / status / chat SSE / metrics)
 ├── frontend/                  # React + Vite + LeafyGreen client
 │   └── src/
 │       ├── App.jsx            # State and orchestration
@@ -174,6 +199,8 @@ there is no CORS configuration to manage in development. For any other origin
 ├── setup_db.py                # Creates collections and indexes (vector_index + text_index)
 ├── config.py                  # Central configuration from environment variables
 ├── db.py                      # Shared MongoDB client (connection pool)
+├── observability.py           # Structured logging + in-process metrics
+├── tests/                     # Pure-logic unit tests
 ├── client_config.json         # Per-tenant questions/follow-ups (not committed)
 ├── client_config.example.json # Example tenant configuration
 ├── requirements.txt
@@ -191,7 +218,9 @@ there is no CORS configuration to manage in development. For any other origin
    the backend and frontend.
 
 Each tenant uses an isolated MongoDB database (`rag_<CLIENT_ID>`), so projects do
-not interfere with one another.
+not interfere with one another. No client names, documents, or branding live in
+the repository — everything tenant-specific stays in `.env`, `data/`, `assets/`,
+and `client_config.json`, all of which are gitignored.
 
 ## Environment variables
 
@@ -206,4 +235,5 @@ not interfere with one another.
 | `DOCUMENT_DESCRIPTION` | no | Description shown in the header |
 | `DB_NAME` | no | Database name (defaults to `rag_<CLIENT_ID>`) |
 | `SYSTEM_PROMPT_EXTRA` | no | Extra instruction appended to the system prompt |
+| `VOYAGE_SLEEP_S` | no | Pause between embedding batches during ingestion (default 22s for the free tier) |
 | `ALLOWED_ORIGINS` | no | Comma-separated CORS origins allowed to call the API (defaults to the local Vite dev server) |
