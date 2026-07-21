@@ -340,7 +340,8 @@ def api_chat(body: ChatBody):
                 model=MODEL,
                 temperature=0,
                 streaming=True,
-                api_key=os.environ["ANTHROPIC_API_KEY"],
+                api_key="dummy",
+                anthropic_api_url=os.getenv("ANTHROPIC_BASE_URL"),
                 default_headers={"api-key": os.environ["ANTHROPIC_API_KEY"]},
             )
             static_instructions = SYSTEM_PROMPT_STATIC.format(
