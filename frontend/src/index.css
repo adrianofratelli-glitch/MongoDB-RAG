@@ -1,15 +1,17 @@
 /* ===== Global base — MongoDB Atlas POC (dark, "pitch" style) ===== */
 :root {
   --bg: #001e2b;
-  --bg-sec: #002838;
-  --bg-card: #003345;
+  --bg-sec: #112733;
+  --bg-card: #1c2d38;
   --green: #00ed64;
-  --text: #fafafa;
-  --text-sec: #b8d8e8;
-  --sub: #7fa8bc;
-  --border-subtle: rgba(255, 255, 255, 0.06);
+  --text: #e8edeb;
+  --text-sec: #c1c7c6;
+  --sub: #889397;
+  --border-subtle: #3d4f58;
   --border-accent: rgba(0, 237, 100, 0.25);
+  --link: #0498ec;
   --mono: 'JetBrains Mono', ui-monospace, monospace;
+  color-scheme: dark;
 
   /* Canonical names shared across this workspace's PoVs (same values,
      aliased rather than renamed to avoid touching every existing usage). */
@@ -34,6 +36,9 @@ body {
   -webkit-font-smoothing: antialiased;
   line-height: 1.6;
 }
+
+::selection { color: var(--text); background: rgba(0, 237, 100, 0.24); }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 3px; }
 
 /* Texture: dot-grid + green radial glow */
 body::before {
@@ -212,10 +217,11 @@ body::after {
 
 /* ===== Markdown (answers) ===== */
 .md { font-size: 14px; line-height: 1.75; color: var(--text-sec); }
-.md h1, .md h2, .md h3 { color: var(--green); font-weight: 700; line-height: 1.3; margin: 14px 0 6px; }
+.md h1, .md h2, .md h3 { color: var(--text); font-weight: 700; line-height: 1.3; margin: 14px 0 6px; }
 .md h1 { font-size: 19px; } .md h2 { font-size: 16px; } .md h3 { font-size: 14.5px; }
 .md p { margin: 8px 0; }
-.md strong { color: var(--green); }
+.md strong { color: var(--text); }
+.md a { color: var(--link); }
 .md ul, .md ol { margin: 8px 0; padding-left: 20px; }
 .md li { margin: 3px 0; }
 .md table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 13px; }
@@ -315,5 +321,34 @@ body::after {
 
 /* ===== Scrollbar ===== */
 ::-webkit-scrollbar { width: 7px; height: 7px; }
-::-webkit-scrollbar-thumb { background: rgba(0, 237, 100, 0.2); border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #5c6c75; }
 ::-webkit-scrollbar-track { background: transparent; }
+
+@media (max-width: 820px) {
+  .app-shell { flex-direction: column; }
+  .sidebar {
+    width: 100%;
+    height: auto;
+    max-height: 44vh;
+    position: relative;
+    top: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .main {
+    width: 100%;
+    max-width: none;
+    padding: 20px 16px 32px;
+  }
+  .top-nav {
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: -20px -16px 18px;
+    padding: 12px 16px;
+  }
+  .top-nav > span {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+}

@@ -13,6 +13,16 @@ import { C } from './theme'
 
 const uuid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2))
 
+const OFFLINE_CONFIG = {
+  client_name: 'RAG PoC',
+  document_title: 'documento configurado',
+  document_description: 'Assistente documental com recuperação híbrida.',
+  db_name: 'indisponível',
+  questions: [],
+  embed_model: 'Voyage AI',
+  rerank_model: 'Voyage AI',
+}
+
 export default function App() {
   const [config, setConfig] = useState(null)
   const [status, setStatus] = useState({ online: false, chunks: null })
@@ -25,15 +35,6 @@ export default function App() {
   const [accessLevel, setAccessLevel] = useState('restrito') // 'publico' | 'restrito'
   const endRef = useRef(null)
 
-  useEffect(() => {
-    getConfig().then(setConfig).catch(() => setError('Falha ao carregar a configuração da API.'))
-    refreshStatus()
-  }, [])
-
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
-
   const refreshStatus = async (force = false) => {
     try {
       setStatus(await getStatus(force))
@@ -41,6 +42,20 @@ export default function App() {
       setStatus({ online: false, chunks: null })
     }
   }
+
+  useEffect(() => {
+    getConfig().then(setConfig).catch(() => {
+      setConfig(OFFLINE_CONFIG)
+      setError('A API não respondeu. Inicie o backend e tente reconectar.')
+    })
+    getStatus()
+      .then(setStatus)
+      .catch(() => setStatus({ online: false, chunks: null }))
+  }, [])
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
 
   const chunksRead = messages.reduce((a, m) => a + (m.sources?.length || 0), 0)
 

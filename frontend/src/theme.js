@@ -1,27 +1,27 @@
 // Official MongoDB palette, with tokens aligned to the dark "pitch" style
 // (dark slate + Spring Green + per-card accents).
 export const C = {
-  bg: '#001E2B',        // Evergreen / Space (official background)
-  bgAlt: '#00141C',     // sidebar / deeper surfaces
-  bgSec: '#002838',     // secondary surface
-  card: '#003345',
-  cardAlt: '#004058',
+  bg: '#001E2B',        // MongoDB Black
+  bgAlt: '#001E2B',     // sidebar / deepest surface
+  bgSec: '#112733',     // Gray Dark 4
+  card: '#1C2D38',      // Gray Dark 3
+  cardAlt: '#263C49',
   green: '#00ED64',     // Spring Green (MongoDB)
   greenMed: '#13AA52',
   greenDark: '#00684A', // Forest
   mint: '#71F6A6',
-  text: '#fafafa',
-  sub: '#b8d8e8',       // secondary (body) text
-  muted: '#7fa8bc',     // muted text / labels
+  text: '#E8EDEB',
+  sub: '#C1C7C6',       // secondary (body) text
+  muted: '#889397',     // muted text / labels
   border: 'rgba(0,237,100,0.25)',
-  border2: 'rgba(255,255,255,0.06)',
+  border2: '#3D4F58',
   red: '#FF6960',
-  blue: '#016BF8',
+  blue: '#0498EC',
   // Secondary accents (card top bars)
-  purple: '#a855f7',
-  cyan: '#06b6d4',
-  teal: '#14b8a6',
-  orange: '#f97316',
+  purple: '#B45AF2',
+  cyan: '#0498EC',
+  teal: '#00A35C',
+  orange: '#FFC010',
 }
 
 export const greenLo = 'rgba(0,237,100,0.08)'
