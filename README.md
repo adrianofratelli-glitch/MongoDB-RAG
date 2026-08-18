@@ -1,28 +1,28 @@
-# RAG Assistant — MongoDB Atlas Vector Search
+# Assistente RAG — MongoDB Atlas Vector Search
 
-Ask a 200-page planning document a question in plain language and get a cited answer in seconds. Vector and lexical search run in parallel on Atlas, RRF fuses the rankings, a re-ranker picks the best passages, and Claude answers using only those — streamed token by token.
+Faça uma pergunta em linguagem natural a um documento de planejamento de 200 páginas e receba uma resposta com citações em segundos. Busca vetorial e lexical rodam em paralelo no Atlas, o RRF funde os ranqueamentos, um re-ranker escolhe as melhores passagens, e o Claude responde usando só elas — em streaming, token a token.
 
-Tenant-agnostic by design: no client name, document or branding lives in the repo. A new tenant is a `.env`, a PDF and one JSON file.
+Agnóstico de tenant por design: nenhum nome de cliente, documento ou marca vive no repositório. Um novo tenant é um `.env`, um PDF e um arquivo JSON.
 
-## The demo in 4 steps
+## A demo em 4 passos
 
-**1. Pick an access profile and a question.** The profile (public / restricted) is the ACL filter applied to *both* search stages, default-deny.
+**1. Escolha um perfil de acesso e uma pergunta.** O perfil (público / restrito) é o filtro de ACL aplicado às *duas* etapas de busca, com negação por padrão.
 
-![Home screen with the access profile selector and the starter questions](docs/screenshots/01-home.png)
+![Tela inicial com o seletor de perfil de acesso e as perguntas iniciais](docs/screenshots/01-home.png)
 
-**2. Ask.** The query is embedded with `voyage-3` and runs `$vectorSearch` and Atlas Search (BM25) in parallel, each already filtered by access level.
+**2. Pergunte.** A consulta vira embedding com o `voyage-3` e roda `$vectorSearch` e Atlas Search (BM25) em paralelo, cada um já filtrado por nível de acesso.
 
-**3. Watch the pipeline report itself.** RRF fuses the two rankings, `rerank-2` reorders, the top 8 chunks become the context — and the UI shows which stage produced what.
+**3. Veja o pipeline se explicar.** O RRF funde os dois ranqueamentos, o `rerank-2` reordena, os 8 melhores chunks viram o contexto — e a UI mostra qual etapa produziu o quê.
 
-![Answer streaming in with the retrieval pipeline shown stage by stage](docs/screenshots/02-answer.png)
+![Resposta chegando em streaming com o pipeline de recuperação mostrado etapa por etapa](docs/screenshots/02-answer.png)
 
-**4. Check the sources.** Every answer carries the passages and pages it came from, so it can be verified instead of trusted.
+**4. Confira as fontes.** Toda resposta carrega as passagens e páginas de onde veio, então dá para verificar em vez de confiar.
 
-![Cited source passages with their page numbers](docs/screenshots/03-sources.png)
+![Passagens citadas como fonte, com os números de página](docs/screenshots/03-sources.png)
 
-> Screenshots run against a live tenant; the organization and document names are replaced with neutral ones.
+> Os screenshots rodam contra um tenant real; os nomes da organização e do documento foram substituídos por nomes neutros.
 
-## How a question is answered
+## Como uma pergunta é respondida
 
 ```mermaid
 graph TD
@@ -39,21 +39,21 @@ graph TD
     API <-->|conversation| MDB[(Atlas · conversations)]
 ```
 
-If one of the two indexes fails, the other carries the query. The stable instruction block (including a document outline) is cached by the Anthropic API, so repeat turns cost less. Conversations persist in MongoDB and resume by thread ID.
+Se um dos dois índices falhar, o outro sustenta a consulta. O bloco estável de instruções (incluindo um sumário do documento) fica em cache na API da Anthropic, então turnos repetidos custam menos. As conversas são persistidas no MongoDB e retomadas pelo thread ID.
 
-Ingestion accepts PDF, DOCX, TXT, CSV, Markdown, HTML, JSON, XLSX and PPTX.
+A ingestão aceita PDF, DOCX, TXT, CSV, Markdown, HTML, JSON, XLSX e PPTX.
 
-> Proof of concept: the access level is picked in the UI for demonstration. In production it would come from authentication (SSO / JWT), never from the client.
+> Prova de conceito: o nível de acesso é escolhido na UI para fins de demonstração. Em produção viria da autenticação (SSO / JWT), nunca do cliente.
 
-## Run it
+## Como rodar
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env          # keys + tenant values
-python setup_db.py            # collections + vector_index + text_index
+cp .env.example .env          # chaves + valores do tenant
+python setup_db.py            # coleções + vector_index + text_index
 python ingest.py data/document.pdf
-cp client_config.example.json client_config.json   # starter questions (optional)
+cp client_config.example.json client_config.json   # perguntas iniciais (opcional)
 ./run.sh                      # backend :8180, frontend :5180
 ```
 
@@ -61,34 +61,38 @@ cp client_config.example.json client_config.json   # starter questions (optional
 MONGO_URI=
 VOYAGE_API_KEY=
 ANTHROPIC_API_KEY=
-CLIENT_ID=tenant_id           # database becomes rag_<CLIENT_ID>
+CLIENT_ID=tenant_id           # o banco vira rag_<CLIENT_ID>
 CLIENT_NAME=Tenant Name
 DOCUMENT_TITLE=Document Title
-DOCUMENT_DESCRIPTION=Shown in the header
+DOCUMENT_DESCRIPTION=Exibido no cabeçalho
 ```
 
-Atlas search indexes take about a minute to become queryable. Ingest restricted content with `--nivel restrito`, re-index with `--reset`. The VoyageAI free tier allows 3 requests/minute, so ingestion embeds in small batches with a pause (`VOYAGE_SLEEP_S`) and inserts each batch as it goes, so an interruption doesn't lose progress.
+Os índices de busca do Atlas levam cerca de um minuto para ficarem consultáveis. Ingira conteúdo restrito com `--nivel restrito`, reindexe com `--reset`. O tier gratuito da VoyageAI permite 3 requisições por minuto, então a ingestão gera embeddings em lotes pequenos com uma pausa (`VOYAGE_SLEEP_S`) e insere cada lote conforme avança, para que uma interrupção não perca o progresso.
 
-Optional: `DB_NAME`, `SYSTEM_PROMPT_EXTRA`, `ALLOWED_ORIGINS`.
+Opcionais: `DB_NAME`, `SYSTEM_PROMPT_EXTRA`, `ALLOWED_ORIGINS`.
 
-Tests: `python -m unittest discover -s tests -v` — pure logic, no live services.
+Testes: `python -m unittest discover -s tests -v` — lógica pura, sem serviços ao vivo.
 
-## Adding a tenant
+## Fronteira de produção
 
-Set the tenant values in `.env`, drop the document in `data/`, customize `client_config.json`, then `setup_db.py` → `ingest.py` → `run.sh`. Each tenant gets its own database (`rag_<CLIENT_ID>`). `data/`, `assets/` and `client_config.json` are gitignored — nothing tenant-specific reaches the repository.
+Histórico do chat, tamanho do sumário, tokens de saída e streams RAG concorrentes são limitados; a imagem roda como UID 10001 atrás do nginx com cabeçalhos de segurança. O filtro por nível de acesso é aplicado nos dois caminhos de recuperação, mas o nível selecionado ainda vem do cliente nesta PoV. Uma implantação externa exige tenant e claims de ACL derivados de SSO/JWT; nunca confie no `access_level` vindo da requisição.
 
-## Layout
+## Adicionando um tenant
+
+Defina os valores do tenant no `.env`, coloque o documento em `data/`, customize o `client_config.json` e então rode `setup_db.py` → `ingest.py` → `run.sh`. Cada tenant ganha o próprio banco (`rag_<CLIENT_ID>`). `data/`, `assets/` e `client_config.json` estão no gitignore — nada específico de tenant chega ao repositório.
+
+## Organização
 
 ```
-backend/api.py     FastAPI app (config / status / chat SSE / metrics)
+backend/api.py     app FastAPI (config / status / chat SSE / métricas)
 frontend/          React + Vite + LeafyGreen
-agent.py           hybrid search + RRF + re-rank, with ACL
-ingest.py          multi-format ingestion (--nivel sets access level)
-setup_db.py        collections and both search indexes
-config.py db.py    configuration and shared Mongo client
-observability.py   structured logging + /api/metrics
+agent.py           busca híbrida + RRF + rerank, com ACL
+ingest.py          ingestão multiformato (--nivel define o nível de acesso)
+setup_db.py        coleções e os dois índices de busca
+config.py db.py    configuração e cliente Mongo compartilhado
+observability.py   logging estruturado + /api/metrics
 ```
 
 ## Stack
 
-React + Vite + LeafyGreen · FastAPI (SSE) · MongoDB Atlas Vector Search + Atlas Search · VoyageAI `voyage-3` / `rerank-2` · Claude Sonnet 4.6 · LangChain community loaders.
+React + Vite + LeafyGreen · FastAPI (SSE) · MongoDB Atlas Vector Search + Atlas Search · VoyageAI `voyage-3` / `rerank-2` · Claude Sonnet 4.6 · loaders da comunidade LangChain.

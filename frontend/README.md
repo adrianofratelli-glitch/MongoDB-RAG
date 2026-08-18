@@ -1,20 +1,20 @@
 # Frontend
 
-React + Vite client for the RAG assistant, built with MongoDB's
-[LeafyGreen](https://www.mongodb.design/) design system.
+Cliente React + Vite do assistente RAG, construído com o design system
+[LeafyGreen](https://www.mongodb.design/) da MongoDB.
 
-- **Dev server:** `npm run dev` — serves at http://localhost:5180 and proxies
-  `/api` to the FastAPI backend on port 8180.
-- **Build:** `npm run build` — outputs a production bundle to `dist/`.
+- **Servidor de dev:** `npm run dev` — serve em http://localhost:5180 e faz proxy de
+  `/api` para o backend FastAPI na porta 8180.
+- **Build:** `npm run build` — gera o bundle de produção em `dist/`.
 - **Lint:** `npm run lint`.
 
-See the [project README](../README.md) for the full setup, including the
-backend and MongoDB Atlas configuration.
+Veja o [README do projeto](../README.md) para o setup completo, incluindo o
+backend e a configuração do MongoDB Atlas.
 
-## Layout
+## Organização
 
-- `src/App.jsx` — application state and orchestration
-- `src/api.js` — config/status requests and the SSE chat stream
-- `src/components/` — UI components (Sidebar, TopBar, KpiRow, ChatMessage, EngineStrip, Sources, ...)
-- `src/index.css` — global styles and design tokens
-- `src/theme.js` — color palette
+- `src/App.jsx` — estado da aplicação e orquestração
+- `src/api.js` — requisições de config/status e o stream SSE do chat
+- `src/components/` — componentes de UI (Sidebar, TopBar, KpiRow, ChatMessage, EngineStrip, Sources, ...)
+- `src/index.css` — estilos globais e tokens de design
+- `src/theme.js` — paleta de cores
