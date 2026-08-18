@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 from pymongo import MongoClient
 from config import DB_NAME
 from dotenv import load_dotenv
@@ -19,6 +20,13 @@ def setup() -> None:
             print(f"Created collection: {col}")
         else:
             print(f"Already exists: {col}")
+
+    retention_days = max(1, int(os.getenv("CONVERSATION_RETENTION_DAYS", "30")))
+    db["conversations"].create_index(
+        "updated_at",
+        name="updated_at_ttl",
+        expireAfterSeconds=int(timedelta(days=retention_days).total_seconds()),
+    )
 
     # Atlas Search indexes (hybrid search)
     docs = db["documents"]

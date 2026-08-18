@@ -1,0 +1,109 @@
+{
+  "perguntas": [
+    {
+      "id": 1,
+      "pergunta": "Qual é a resolução do CNJ que instituiu a Estratégia Nacional de Tecnologia da Informação e Comunicação do Poder Judiciário (ENTIC-JUD) para o sexênio 2021-2026?",
+      "gabarito": "A Resolução nº 370, de 28 de janeiro de 2021, do Conselho Nacional de Justiça (CNJ) instituiu a ENTIC-JUD para o sexênio 2021-2026.",
+      "evidencia": "Resolução nº 370 - CNJ, de 28/01/2021 | Institui a Estratégia Nacional de Tecnologia da Informação e Comunicação do Poder Judiciário (ENTIC-JUD) para o sexênio 2021-2026",
+      "tipo": "tabela"
+    },
+    {
+      "id": 2,
+      "pergunta": "Qual foi a pontuação do TJGO no índice iGovTIC-JUD nos anos de 2023 e 2024?",
+      "gabarito": "O TJGO alcançou a pontuação de 90,34 no índice iGovTIC-JUD em 2023 e 92,15 em 2024.",
+      "evidencia": "alcançando pontuações expressivas no índice iGovTIC-JUD: 90,34 em 2023 (Figura 05) e 92,15 em 2024 (Figura 06)",
+      "tipo": "numero"
+    },
+    {
+      "id": 3,
+      "pergunta": "Qual é o período de vigência do PDTIC 2025/2027 e quando está prevista a revisão anual obrigatória?",
+      "gabarito": "O PDTIC tem validade de fevereiro de 2025 a janeiro de 2027. A revisão anual obrigatória está programada para janeiro de 2026.",
+      "evidencia": "Este Plano Diretor de Tecnologia da Informação e Comunicação tem validade para o biênio de fevereiro de 2025 a janeiro de 2027. Durante esse período, está prevista uma revisão anual obrigatória, em conformidade com as diretrizes da ENTIC-JUD, programada para janeiro de 2026.",
+      "tipo": "data"
+    },
+    {
+      "id": 4,
+      "pergunta": "Das 124 ações planejadas no PDTIC 2023-2025, quantas foram concluídas, reagendadas, canceladas e não concluídas?",
+      "gabarito": "Das 124 ações planejadas, 75 foram concluídas dentro da vigência, 10 reagendadas, 4 canceladas e 35 não concluídas.",
+      "evidencia": "Das 124 Ações Planejadas para o PDTIC 2023-25, 75 foram concluídas dentro da vigência, 10 reagendadas, 4 canceladas e 35 não concluídas.",
+      "tipo": "numero"
+    },
+    {
+      "id": 5,
+      "pergunta": "Quais são as categorias estratégicas em que as ações do PDTIC foram organizadas?",
+      "gabarito": "As ações foram organizadas nas seguintes categorias: Infraestrutura de TIC; Processo Judicial Digital (PROJUDI); Processo Administrativo Digital (PROAD); Processos Internos; e Sistemas e Suporte.",
+      "evidencia": "Infraestrutura de TIC; Processo Judicial Digital (PROJUDI); Processo Administrativo Digital (PROAD); Processos Internos; Sistemas e Suporte.",
+      "tipo": "lista"
+    },
+    {
+      "id": 6,
+      "pergunta": "Qual é o custo estimado da ação AC 09, que trata do aprimoramento da infraestrutura de datacenter do TJGO?",
+      "gabarito": "O custo estimado da ação AC 09 (Aprimorar a infraestrutura de datacenter do TJGO) é de R$ 40.000.000,00.",
+      "evidencia": "AC 09 Aprimorar a infraestrutura de datacenter do TJGO AGO./2026 CUSTO R$40.000.000,00",
+      "tipo": "numero"
+    },
+    {
+      "id": 7,
+      "pergunta": "Qual unidade é responsável pela elaboração do PDTIC e qual instância é responsável por sua aprovação?",
+      "gabarito": "O PDTIC foi desenvolvido pela Coordenadoria de Governança e Planejamento de TIC. Sua aprovação é de responsabilidade do Comitê de Governança de Tecnologia da Informação (CGovTIC), vinculado à Presidência do Tribunal de Justiça do Estado de Goiás.",
+      "evidencia": "O Plano Diretor de Tecnologia da Informação e Comunicação foi desenvolvido pela Coordenadoria de Governança e Planejamento de TIC... Sua aprovação é de responsabilidade do Comitê de Governança de Tecnologia da Informação (CGovTIC)",
+      "tipo": "fato"
+    },
+    {
+      "id": 8,
+      "pergunta": "O que significa a sigla COBIT conforme a tabela de abreviações e termos do documento?",
+      "gabarito": "COBIT significa Control Objectives for Information and related Technology, sendo um modelo de negócios de boas práticas criado pela ISACA para apoiar na governança de tecnologia de informação das mais variadas instituições.",
+      "evidencia": "COBIT | Control Objectives for Information and related Technology, é um modelo de negócios de boas práticas criado pela ISACA para apoiar na governança de tecnologia de informação das mais variadas instituições",
+      "tipo": "tabela"
+    },
+    {
+      "id": 9,
+      "pergunta": "Quais são os dois macrodesafios do Planejamento Estratégico 2021/2026 do TJGO aos quais as ações do PDTIC estão diretamente alinhadas?",
+      "gabarito": "As ações do PDTIC estão alinhadas ao Macrodesafio 9 – Aperfeiçoar a Gestão Administrativa e a Governança Judiciária, e ao Macrodesafio 12 – Aperfeiçoar a Estratégia Nacional de TIC e de Proteção de Dados.",
+      "evidencia": "a) MACRODESAFIO 9 – Aperfeiçoar a Gestão Administrativa e a Governança Judiciária; b) MACRODESAFIO 12 – Aperfeiçoar a Estratégia Nacional de TIC e de Proteção De Dados.",
+      "tipo": "lista"
+    },
+    {
+      "id": 10,
+      "pergunta": "Qual é o custo estimado da ação AC 12, que trata da manutenção atualizada do parque computacional de TI do TJGO?",
+      "gabarito": "O custo estimado da ação AC 12 (Manter atualizado o parque computacional de TI) é de R$ 62.600.000,00.",
+      "evidencia": "AC 12 Manter atualizado o parque computacional de TI DEZ./2026 CUSTO R$62.600.000,00",
+      "tipo": "tabela"
+    },
+    {
+      "id": 11,
+      "pergunta": "Qual é a composição do Comitê Gestor de Segurança da Informação (CGSI) conforme o Decreto nº 1.299/2025?",
+      "gabarito": "O CGSI é composto por: Juiz(a) Auxiliar da Presidência com competência em TI; Secretário(a) de Governança Judiciária e Tecnológica; Diretor(a) Judiciário; Diretor(a) de Tecnologia da Informação da Presidência; Diretor(a) de Soluções em Tecnologia da Informação; Coordenador(a) de Infraestrutura Tecnológica; e Núcleo de Segurança e Administração de Dados.",
+      "evidencia": "COMITÊ GESTOR DE SEGURANÇA DA INFORMAÇÃO - CGSI, COMPOSTO DA SEGUINTE FORMA (DECRETO Nº 1.299/2025)",
+      "tipo": "lista"
+    },
+    {
+      "id": 12,
+      "pergunta": "Qual documento de referência trata da Política de Gestão de Pessoas de TIC no âmbito do Poder Judiciário do Estado de Goiás?",
+      "gabarito": "A Resolução TJGO 128/2020 institui a Política de Gestão de Pessoas de TIC no âmbito do Poder Judiciário do Estado de Goiás.",
+      "evidencia": "Resolução TJGO 128/2020 | Institui a Política de Gestão de Pessoas de TIC no âmbito do Poder Judiciário do Estado de Goiás",
+      "tipo": "tabela"
+    },
+    {
+      "id": 13,
+      "pergunta": "Qual é o objetivo principal (Objective) definido na metodologia OKR adotada para o monitoramento do PDTIC?",
+      "gabarito": "O objetivo principal definido é 'Aumentar a satisfação dos usuários com recursos de TIC'.",
+      "evidencia": "OBJETIVO Aumentar a satisfação dos usuários com recursos de TIC",
+      "tipo": "fato"
+    },
+    {
+      "id": 14,
+      "pergunta": "Qual é o custo estimado da ação AC 05, que trata da contratação de solução tecnológica integrada para comunicação e trabalho colaborativo?",
+      "gabarito": "O custo estimado da ação AC 05 é de R$ 15.000.000,00.",
+      "evidencia": "AC 05 | Elaborar estudo técnico visando a contratação de solução tecnológica integrada para comunicação, armazenamento e trabalho colaborativo... CUSTO R$15.000.000,00",
+      "tipo": "tabela"
+    },
+    {
+      "id": 15,
+      "pergunta": "Em 2022, qual foi a posição do TJGO na classificação geral do ranking iGovTIC-JUD e qual nível de maturidade foi alcançado?",
+      "gabarito": "Em 2022, o TJGO obteve o 23º lugar na classificação geral entre 93 órgãos avaliados, alcançando o nível de maturidade 'Excelência'.",
+      "evidencia": "O TJGO obteve o 23º lugar na classificação geral (Figura 03), entre 93 órgãos avaliados, marcando o melhor desempenho e posicionamento desde o início da participação no levantamento anual. Esse resultado reflete o alcance do nível de maturidade \"Excelência\"",
+      "tipo": "numero"
+    }
+  ]
+}

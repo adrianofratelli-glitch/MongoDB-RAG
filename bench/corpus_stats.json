@@ -1,0 +1,20 @@
+{
+  "pdf": {
+    "file": "PDTIC_2025_2027.pdf",
+    "loader": "PyPDFLoader",
+    "chars": "122.166",
+    "chunks": 210,
+    "headings": 0,
+    "table_rows": 0,
+    "pages": "sim (nº real da página)"
+  },
+  "md": {
+    "file": "PDTIC_2025_2027.md",
+    "loader": "TextLoader",
+    "chars": "131.859",
+    "chunks": 303,
+    "headings": 94,
+    "table_rows": 163,
+    "pages": "não (arquivo único, page=0)"
+  }
+}

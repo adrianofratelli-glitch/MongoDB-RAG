@@ -1,0 +1,766 @@
+[
+  {
+    "id": 1,
+    "pergunta": "Qual é a resolução do CNJ que instituiu a Estratégia Nacional de Tecnologia da Informação e Comunicação do Poder Judiciário (ENTIC-JUD) para o sexênio 2021-2026?",
+    "tipo": "tabela",
+    "gabarito": "A Resolução nº 370, de 28 de janeiro de 2021, do Conselho Nacional de Justiça (CNJ) instituiu a ENTIC-JUD para o sexênio 2021-2026.",
+    "evidencia": "Resolução nº 370 - CNJ, de 28/01/2021 | Institui a Estratégia Nacional de Tecnologia da Informação e Comunicação do Poder Judiciário (ENTIC-JUD) para o sexênio 2021-2026",
+    "stores": {
+      "pdf": {
+        "resposta": "Com base no contexto fornecido, a **Resolução nº 370 do CNJ, de 28/01/2021**, instituiu a Estratégia Nacional de Tecnologia da Informação e Comunicação do Poder Judiciário **(ENTIC-JUD)** para o sexênio **2021-2026**.",
+        "retrieval_ms": 3560,
+        "evidence_recall": 1.0,
+        "top_rerank": 0.9648,
+        "mean_rerank": 0.8227,
+        "n_sources": 8,
+        "vector_hits": 15,
+        "lexical_hits": 15,
+        "fused": 20,
+        "pages": [
+          "12",
+          "15",
+          "17",
+          "43",
+          "46",
+          "50",
+          "64",
+          "7"
+        ],
+        "acuracia": 5,
+        "completude": 5,
+        "fidelidade": 5,
+        "justificativa": "A resposta reproduz com exatidão todos os elementos do gabarito: número da resolução (370), data (28/01/2021), órgão (CNJ), nome completo da estratégia (ENTIC-JUD) e período (2021-2026), sem acrescentar informações externas."
+      },
+      "md": {
+        "resposta": "Com base no contexto fornecido, a resolução do CNJ que instituiu a Estratégia Nacional de Tecnologia da Informação e Comunicação do Poder Judiciário (ENTIC-JUD) para o sexênio 2021-2026 foi a **Resolução nº 370, de 28/01/2021**.",
+        "retrieval_ms": 839,
+        "evidence_recall": 1.0,
+        "top_rerank": 0.9609,
+        "mean_rerank": 0.9609,
+        "n_sources": 1,
+        "vector_hits": 15,
+        "lexical_hits": 15,
+        "fused": 22,
+        "pages": [
+          "0"
+        ],
+        "acuracia": 5,
+        "completude": 5,
+        "fidelidade": 5,
+        "justificativa": "A resposta corresponde exatamente ao gabarito, mencionando corretamente a Resolução nº 370 de 28/01/2021, sem adicionar informações além do documento."
+      }
+    }
+  },
+  {
+    "id": 2,
+    "pergunta": "Qual foi a pontuação do TJGO no índice iGovTIC-JUD nos anos de 2023 e 2024?",
+    "tipo": "numero",
+    "gabarito": "O TJGO alcançou a pontuação de 90,34 no índice iGovTIC-JUD em 2023 e 92,15 em 2024.",
+    "evidencia": "alcançando pontuações expressivas no índice iGovTIC-JUD: 90,34 em 2023 (Figura 05) e 92,15 em 2024 (Figura 06)",
+    "stores": {
+      "pdf": {
+        "resposta": "Com base no contexto fornecido, o TJGO alcançou as seguintes pontuações no índice iGovTIC-JUD:\n\n- **2023:** 90,34\n- **2024:** 92,15\n\nEsses resultados demonstram a evolução contínua da maturidade em governança e gestão de TIC do Tribunal, alinhada às diretrizes estratégicas do Conselho Nacional de Justiça (CNJ).",
+        "retrieval_ms": 1084,
+        "evidence_recall": 0.889,
+        "top_rerank": 0.9648,
+        "mean_rerank": 0.7565,
+        "n_sources": 6,
+        "vector_hits": 15,
+        "lexical_hits": 15,
+        "fused": 24,
+        "pages": [
+          "17",
+          "18",
+          "19",
+          "22",
+          "23",
+          "7"
+        ],
+        "acuracia": 5,
+        "completude": 5,
+        "fidelidade": 5,
+        "justificativa": "A resposta reproduz exatamente os valores do gabarito (90,34 em 2023 e 92,15 em 2024) sem adicionar informações não verificáveis além do contexto."
+      },
+      "md": {
+        "resposta": "Com base no contexto fornecido, o TJGO alcançou as seguintes pontuações no índice iGovTIC-JUD:\n\n- **2023:** **90,34**\n- **2024:** **92,15**\n\nEsses resultados demonstram a consolidação de uma gestão estratégica focada na eficiência, inovação e segurança da informação.",
+        "retrieval_ms": 850,
+        "evidence_recall": 1.0,
+        "top_rerank": 0.9609,
+        "mean_rerank": 0.9609,
+        "n_sources": 1,
+        "vector_hits": 15,
+        "lexical_hits": 15,
+        "fused": 22,
+        "pages": [
+          "0"
+        ],
+        "acuracia": 5,
+        "completude": 5,
+        "fidelidade": 4,
+        "justificativa": "Os números batem perfeitamente com o gabarito, mas a resposta acrescenta uma afirmação interpretativa ('consolidação de uma gestão estratégica focada na eficiência, inovação e segurança da informação') que não está no gabarito, configurando leve alucinação."
+      }
+    }
+  },
+  {
+    "id": 3,
+    "pergunta": "Qual é o período de vigência do PDTIC 2025/2027 e quando está prevista a revisão anual obrigatória?",
+    "tipo": "data",
+    "gabarito": "O PDTIC tem validade de fevereiro de 2025 a janeiro de 2027. A revisão anual obrigatória está programada para janeiro de 2026.",
+    "evidencia": "Este Plano Diretor de Tecnologia da Informação e Comunicação tem validade para o biênio de fevereiro de 2025 a janeiro de 2027. Durante esse período, está prevista uma revisão anual obrigatória, em conformidade com as diretrizes da ENTIC-JUD, programada para janeiro de 2026.",
+    "stores": {
+      "pdf": {
+        "resposta": "## Vigência e Revisão do PDTIC 2025/2027\n\nCom base no documento, o **período de vigência** do Plano Diretor de Tecnologia da Informação e Comunicação é:\n\n> **Fevereiro de 2025 a janeiro de 2027**\n\nQuanto à revisão anual obrigatória, está programada para:\n\n> **Janeiro de 2026**\n\nEssa revisão está prevista em conformidade com as diretrizes da **ENTIC-JUD**. Além disso, o documento prevê que **revisões extraordinárias** poderão ser realizadas sempre que necessário, durante o período de vigência do plano.",
+        "retrieval_ms": 1004,
+        "evidence_recall": 1.0,
+        "top_rerank": 0.957,
+        "mean_rerank": 0.7412,
+        "n_sources": 8,
+        "vector_hits": 15,
+        "lexical_hits": 15,
+        "fused": 25,
+        "pages": [
+          "0",
+          "1",
+          "10",
+          "17",
+          "25",
+          "61",
+          "7",
+          "83"
+        ],
+        "acuracia": 5,
+        "completude": 5,
+        "fidelidade": 5,
+        "justificativa": "A resposta reproduz com exatidão as datas de vigência e revisão do gabarito, e o acréscimo sobre revisões extraordinárias e ENTIC-JUD é informação contextual plausível do documento, sem contradizer o gabarito."
+      },
+      "md": {
+        "resposta": "## Vigência e Revisão Anual do PDTIC 2025/2027\n\nO **PDTIC 2025/2027** do Tribunal de Justiça do Estado de Goiás tem validade para o período de **fevereiro de 2025** a **janeiro de 2027**.\n\nDurante esse período, está prevista uma **revisão anual obrigatória** programada para **janeiro de 2026**, em conformidade com as diretrizes da **ENTIC-JUD**.\n\nAlém da revisão anual obrigatória, o documento também prevê a possibilidade de **revisões extraordinárias**, sempre que necessário, para garantir o alinhamento do plano às:\n- Mudanças estratégicas;\n- Novas diretrizes da Estratégia Nacional de Tecnologia da Informação e Comunicação;\n- Atualizações do Plano de Gestão do TJGO.",
+        "retrieval_ms": 749,
+        "evidence_recall": 1.0,
+        "top_rerank": 0.9492,
+        "mean_rerank": 0.9492,
+        "n_sources": 1,
+        "vector_hits": 15,
+        "lexical_hits": 15,
+        "fused": 23,
+        "pages": [
+          "0"
+        ],
+        "acuracia": 5,
+        "completude": 5,
+        "fidelidade": 4,
+        "justificativa": "A resposta cobre todos os fatos do gabarito com precisão; as informações adicionais sobre revisões extraordinárias e alinhamentos estratégicos parecem plausíveis para um documento desse tipo, mas não constam no gabarito, representando leve risco de alucinação."
+      }
+    }
+  },
+  {
+    "id": 4,
+    "pergunta": "Das 124 ações planejadas no PDTIC 2023-2025, quantas foram concluídas, reagendadas, canceladas e não concluídas?",
+    "tipo": "numero",
+    "gabarito": "Das 124 ações planejadas, 75 foram concluídas dentro da vigência, 10 reagendadas, 4 canceladas e 35 não concluídas.",
+    "evidencia": "Das 124 Ações Planejadas para o PDTIC 2023-25, 75 foram concluídas dentro da vigência, 10 reagendadas, 4 canceladas e 35 não concluídas.",
+    "stores": {
+      "pdf": {
+        "resposta": "Com base no contexto fornecido, das **124 ações planejadas** no PDTIC 2023-2025, os resultados foram:\n\n| Situação | Quantidade | Percentual |\n|---|---|---|\n| **Concluídas** | 75 | 61% |\n| **Não Concluídas** | 35 | 28% |\n| **Reagendadas** | 10 | 8% |\n| **Canceladas** | 4 | 3% |\n\nVale destacar que, conforme o documento, as ações **canceladas e não concluídas não tiveram replanejamento** para o biênio 2025-2027, enquanto as **reagendadas** são ações que não foram concluídas em tempo e serão **obrigatoriamente replanejadas**.",
+        "retrieval_ms": 1497,
+        "evidence_recall": 1.0,
+        "top_rerank": 0.9766,
+        "mean_rerank": 0.8069,
+        "n_sources": 7,
+        "vector_hits": 15,
+        "lexical_hits": 15,
+        "fused": 22,
+        "pages": [
+          "24",
+          "25",
+          "40",
+          "41",
+          "46",
+          "47",
+          "59"
+        ],
+        "acuracia": 5,
+        "completude": 5,
+        "fidelidade": 4,
+        "justificativa": "Os números batem perfeitamente com o gabarito e a resposta cobre todos os itens solicitados, com informações adicionais sobre replanejamento que parecem plausíveis mas vão além do gabarito fornecido."
+      },
+      "md": {
+        "resposta": "Com base no contexto fornecido, das **124 ações planejadas** no PDTIC 2023-2025, os resultados foram:\n\n- ✅ **Concluídas:** 75 (61%)\n- 🔄 **Reagendadas:** 10 (8%)\n- ❌ **Canceladas:** 4 (3%)\n- ⚠️ **Não Concluídas:** 35 (28%)\n\nVale destacar que as ações canceladas e não concluídas **não tiveram replanejamento** para o biênio 2025-2027, conforme orientações do painel de Encerramento do PDTIC anterior.",
+        "retrieval_ms": 1007,
+        "evidence_recall": 1.0,
+        "top_rerank": 0.9727,
+        "mean_rerank": 0.9727,
+        "n_sources": 1,
+        "vector_hits": 15,
+        "lexical_hits": 15,
+        "fused": 23,
+        "pages": [
+          "0"
+        ],
+        "acuracia": 5,
+        "completude": 5,
+        "fidelidade": 4,
+        "justificativa": "Os números batem perfeitamente com o gabarito e a cobertura é completa; a afirmação extra sobre ações canceladas/não concluídas não terem replanejamento para 2025-2027 não consta no gabarito, representando um leve risco de alucinação."
+      }
+    }
+  },
+  {
+    "id": 5,
+    "pergunta": "Quais são as categorias estratégicas em que as ações do PDTIC foram organizadas?",
+    "tipo": "lista",
+    "gabarito": "As ações foram organizadas nas seguintes categorias: Infraestrutura de TIC; Processo Judicial Digital (PROJUDI); Processo Administrativo Digital (PROAD); Processos Internos; e Sistemas e Suporte.",
+    "evidencia": "Infraestrutura de TIC; Processo Judicial Digital (PROJUDI); Processo Administrativo Digital (PROAD); Processos Internos; Sistemas e Suporte.",
+    "stores": {
+      "pdf": {
+        "resposta": "Com base no contexto fornecido, as ações do PDTIC foram organizadas nas seguintes **categorias estratégicas**:\n\n1. **Infraestrutura de TIC** (INFRA) — visam à manutenção e implantação da infraestrutura de TIC;\n2. **Processo Judicial Digital** (PROJUDI) — visam à manutenção e evolução do sistema de processo judicial eletrônico;\n3. **Processo Administrativo Digital** (PROAD) — visam à manutenção e evolução do sistema de processo administrativo eletrônico;\n4. **Processos Internos** (PRIN) — visam à melhoria dos processos internos de TIC, buscando a otimização dos seus serviços e entregas;\n5. **Segurança** (SEG) — visam à melhoria nos cuidados com a segurança da informação digital;\n6. **Sistemas e Suporte**.\n\nEssas categorias são detalhadas no **Quadro de Ações Planejadas (Seção 9)** do Plano Diretor.",
+        "retrieval_ms": 1223,
+        "evidence_recall": 1.0,
+        "top_rerank": 0.9375,
+        "mean_rerank": 0.7583,
+        "n_sources": 8,
+        "vector_hits": 15,
+        "lexical_hits": 15,
+        "fused": 23,
+        "pages": [
+          "13",
+          "24",
+          "25",
+          "39",
+          "41",
+          "42",
+          "43",
+          "9"
+        ],
+        "acuracia": 3,
+        "completude": 5,
+        "fidelidade": 2,
+        "justificativa": "A resposta cobre todas as 5 categorias do gabarito, mas adiciona uma categoria extra ('Segurança/SEG') que não consta no gabarito, caracterizando alucinação parcial."
+      },
+      "md": {
+        "resposta": "Com base no contexto fornecido, as ações do PDTIC foram organizadas nas seguintes **categorias estratégicas**:\n\n1. **Infraestrutura de TIC**\n2. **Processo Judicial Digital (PROJUDI)**\n3. **Processo Administrativo Digital (PROAD)**\n4. **Processos Internos**\n5. **Sistemas e Suporte**\n\nEssas categorias são detalhadas no **Quadro de Ações Planejadas (Seção 9)** do Plano Diretor.",
+        "retrieval_ms": 829,
+        "evidence_recall": 1.0,
+        "top_rerank": 0.8945,
+        "mean_rerank": 0.8945,
+        "n_sources": 1,
+        "vector_hits": 15,
+        "lexical_hits": 15,
+        "fused": 25,
+        "pages": [
+          "0"
+        ],
+        "acuracia": 5,
+        "completude": 5,
+        "fidelidade": 4,
+        "justificativa": "A resposta cobre todas as categorias do gabarito com precisão, mas adiciona uma referência à 'Seção 9' que não está no gabarito e pode ser uma alucinação menor."
+      }
+    }
+  },
+  {
+    "id": 6,
+    "pergunta": "Qual é o custo estimado da ação AC 09, que trata do aprimoramento da infraestrutura de datacenter do TJGO?",
+    "tipo": "numero",
+    "gabarito": "O custo estimado da ação AC 09 (Aprimorar a infraestrutura de datacenter do TJGO) é de R$ 40.000.000,00.",
+    "evidencia": "AC 09 Aprimorar a infraestrutura de datacenter do TJGO AGO./2026 CUSTO R$40.000.000,00",
+    "stores": {
+      "pdf": {
+        "resposta": "Com base no contexto fornecido, o custo estimado da ação **AC 09 — Aprimorar a infraestrutura de datacenter do TJGO** é de **R$ 40.000.000,00** (quarenta milhões de reais), com previsão de conclusão para **AGO./2026**.",
+        "retrieval_ms": 1143,
+        "evidence_recall": 1.0,
+        "top_rerank": 0.9727,
+        "mean_rerank": 0.7428,
+        "n_sources": 7,
+        "vector_hits": 15,
+        "lexical_hits": 15,
+        "fused": 17,
+        "pages": [
+          "11",
+          "41",
+          "74",
+          "75",
+          "77",
+          "78",
+          "79"
+        ],
+        "acuracia": 5,
+        "completude": 5,
+        "fidelidade": 5,
+        "justificativa": "A resposta confirma exatamente o valor de R$ 40.000.000,00 presente no gabarito, sem adicionar informações contraditórias ou inventadas — a data de conclusão é um detalhe complementar plausível do documento."
+      },
+      "md": {
+        "resposta": "Com base no contexto fornecido, o custo estimado da ação **AC 09** — *Aprimorar a infraestrutura de datacenter do TJGO* — é de **R$ 40.000.000,00**, com previsão de conclusão em **AGO./2026**.",
+        "retrieval_ms": 855,
+        "evidence_recall": 1.0,
+        "top_rerank": 0.9766,
+        "mean_rerank": 0.9766,
+        "n_sources": 1,
+        "vector_hits": 15,
+        "lexical_hits": 15,
+        "fused": 22,
+        "pages": [
+          "0"
+        ],
+        "acuracia": 5,
+        "completude": 5,
+        "fidelidade": 5,
+        "justificativa": "A resposta reproduz corretamente o valor de R$ 40.000.000,00 e acrescenta apenas a data de conclusão, informação plausível do documento sem contradizer o gabarito."
+      }
+    }
+  },
+  {
+    "id": 7,
+    "pergunta": "Qual unidade é responsável pela elaboração do PDTIC e qual instância é responsável por sua aprovação?",
+    "tipo": "fato",
+    "gabarito": "O PDTIC foi desenvolvido pela Coordenadoria de Governança e Planejamento de TIC. Sua aprovação é de responsabilidade do Comitê de Governança de Tecnologia da Informação (CGovTIC), vinculado à Presidência do Tribunal de Justiça do Estado de Goiás.",
+    "evidencia": "O Plano Diretor de Tecnologia da Informação e Comunicação foi desenvolvido pela Coordenadoria de Governança e Planejamento de TIC... Sua aprovação é de responsabilidade do Comitê de Governança de Tecnologia da Informação (CGovTIC)",
+    "stores": {
+      "pdf": {
+        "resposta": "Com base no contexto fornecido, o PDTIC foi **elaborado pela Coordenadoria de Governança e Planejamento de TIC**, unidade que compõe a estrutura administrativa da Secretaria de Governança Judiciária e Tecnológica da Presidência do Poder Judiciário Estadual.\n\nSua **aprovação é de responsabilidade do Comitê de Governança de Tecnologia da Informação (CGovTIC)**, instância estratégica vinculada à Presidência do Tribunal de Justiça do Estado de Goiás.",
+        "retrieval_ms": 1751,
+        "evidence_recall": 1.0,
+        "top_rerank": 0.9453,
+        "mean_rerank": 0.7746,
+        "n_sources": 7,
+        "vector_hits": 15,
+        "lexical_hits": 15,
+        "fused": 28,
+        "pages": [
+          "24",
+          "32",
+          "33",
+          "45",
+          "59",
+          "7",
+          "86"
+        ],
+        "acuracia": 5,
+        "completude": 5,
+        "fidelidade": 4,
+        "justificativa": "A resposta cobre todos os fatos do gabarito com precisão, acrescentando apenas um detalhe sobre a estrutura administrativa ('Secretaria de Governança Judiciária e Tecnológica') que não consta no gabarito, mas é plausível e não contradiz o documento."
+      },
+      "md": {
+        "resposta": "## Elaboração e Aprovação do PDTIC\n\nCom base no documento, as responsabilidades são:\n\n- **Elaboração:** O PDTIC foi desenvolvido pela **Coordenadoria de Governança e Planejamento de TIC**, unidade que compõe a estrutura administrativa da Secretaria de Governança Judiciária e Tecnológica da Presidência do Poder Judiciário Estadual.\n\n- **Aprovação:** A responsabilidade pela aprovação é do **Comitê de Governança de Tecnologia da Informação (CGovTIC)**, instância estratégica vinculada à Presidência do Tribunal de Justiça do Estado de Goiás.",
+        "retrieval_ms": 835,
+        "evidence_recall": 1.0,
+        "top_rerank": 0.8984,
+        "mean_rerank": 0.8984,
+        "n_sources": 1,
+        "vector_hits": 15,
+        "lexical_hits": 15,
+        "fused": 26,
+        "pages": [
+          "0"
+        ],
+        "acuracia": 5,
+        "completude": 5,
+        "fidelidade": 5,
+        "justificativa": "A resposta reproduz com precisão todas as informações do gabarito, identificando corretamente a Coordenadoria de Governança e Planejamento de TIC como responsável pela elaboração e o CGovTIC como instância de aprovação, sem adicionar informações não verificáveis."
+      }
+    }
+  },
+  {
+    "id": 8,
+    "pergunta": "O que significa a sigla COBIT conforme a tabela de abreviações e termos do documento?",
+    "tipo": "tabela",
+    "gabarito": "COBIT significa Control Objectives for Information and related Technology, sendo um modelo de negócios de boas práticas criado pela ISACA para apoiar na governança de tecnologia de informação das mais variadas instituições.",
+    "evidencia": "COBIT | Control Objectives for Information and related Technology, é um modelo de negócios de boas práticas criado pela ISACA para apoiar na governança de tecnologia de informação das mais variadas instituições",
+    "stores": {
+      "pdf": {
+        "resposta": "De acordo com a tabela de abreviações e termos do documento, **COBIT** significa **Control Objectives for Information and related Technology**, sendo descrito como um modelo de negócios de boas práticas criado pela **ISACA** para apoiar na governança de tecnologia de informação das mais variadas instituições.",
+        "retrieval_ms": 1017,
+        "evidence_recall": 1.0,
+        "top_rerank": 0.8438,
+        "mean_rerank": 0.6543,
+        "n_sources": 6,
+        "vector_hits": 15,
+        "lexical_hits": 15,
+        "fused": 27,
+        "pages": [
+          "11",
+          "12",
+          "13",
+          "16",
+          "4",
+          "51"
+        ],
+        "acuracia": 5,
+        "completude": 5,
+        "fidelidade": 5,
+        "justificativa": "A resposta reproduz fielmente todas as informações do gabarito: sigla expandida, descrição como modelo de boas práticas, criador (ISACA) e finalidade (governança de TI), sem adicionar informações externas."
+      },
+      "md": {
+        "resposta": "Com base na tabela de abreviações e termos do documento, **COBIT** significa **_Control Objectives for Information and related Technology_**, sendo descrito como um **modelo de negócios de boas práticas criado pela ISACA** para apoiar na governança de tecnologia de informação das mais variadas instituições.",
+        "retrieval_ms": 830,
+        "evidence_recall": 1.0,
+        "top_rerank": 0.8711,
+        "mean_rerank": 0.8711,
+        "n_sources": 1,
+        "vector_hits": 15,
+        "lexical_hits": 15,
+        "fused": 27,
+        "pages": [
+          "0"
+        ],
+        "acuracia": 5,
+        "completude": 5,
+        "fidelidade": 5,
+        "justificativa": "A resposta reproduz fielmente todas as informações do gabarito: sigla expandida, criador (ISACA) e propósito, sem adicionar informações externas."
+      }
+    }
+  },
+  {
+    "id": 9,
+    "pergunta": "Quais são os dois macrodesafios do Planejamento Estratégico 2021/2026 do TJGO aos quais as ações do PDTIC estão diretamente alinhadas?",
+    "tipo": "lista",
+    "gabarito": "As ações do PDTIC estão alinhadas ao Macrodesafio 9 – Aperfeiçoar a Gestão Administrativa e a Governança Judiciária, e ao Macrodesafio 12 – Aperfeiçoar a Estratégia Nacional de TIC e de Proteção de Dados.",
+    "evidencia": "a) MACRODESAFIO 9 – Aperfeiçoar a Gestão Administrativa e a Governança Judiciária; b) MACRODESAFIO 12 – Aperfeiçoar a Estratégia Nacional de TIC e de Proteção De Dados.",
+    "stores": {
+      "pdf": {
+        "resposta": "Com base no contexto fornecido, as ações do PDTIC estão diretamente alinhadas a dois macrodesafios do Planejamento Estratégico 2021/2026 do TJGO:\n\n- **MACRODESAFIO 9** – Aperfeiçoar a Gestão Administrativa e a Governança Judiciária;\n- **MACRODESAFIO 12** – Aperfeiçoar a Estratégia Nacional de TIC e de Proteção De Dados.",
+        "retrieval_ms": 990,
+        "evidence_recall": 1.0,
+        "top_rerank": 0.9688,
+        "mean_rerank": 0.8608,
+        "n_sources": 8,
+        "vector_hits": 15,
+        "lexical_hits": 15,
+        "fused": 26,
+        "pages": [
+          "13",
+          "24",
+          "27",
+          "43",
+          "55",
+          "61",
+          "66",
+          "67"
+        ],
+        "acuracia": 5,
+        "completude": 5,
+        "fidelidade": 5,
+        "justificativa": "A resposta corresponde exatamente ao gabarito, identificando corretamente os dois macrodesafios (9 e 12) com suas descrições precisas, sem adicionar informações além do documento."
+      },
+      "md": {
+        "resposta": "Com base no contexto fornecido, as ações do PDTIC estão diretamente alinhadas a dois macrodesafios do Planejamento Estratégico 2021/2026 do TJGO:\n\n- **MACRODESAFIO 9** – Aperfeiçoar a Gestão Administrativa e a Governança Judiciária;\n- **MACRODESAFIO 12** – Aperfeiçoar a Estratégia Nacional de TIC e de Proteção de Dados.",
+        "retrieval_ms": 827,
+        "evidence_recall": 1.0,
+        "top_rerank": 0.9688,
+        "mean_rerank": 0.9688,
+        "n_sources": 1,
+        "vector_hits": 15,
+        "lexical_hits": 15,
+        "fused": 27,
+        "pages": [
+          "0"
+        ],
+        "acuracia": 5,
+        "completude": 5,
+        "fidelidade": 5,
+        "justificativa": "A resposta corresponde exatamente ao gabarito, identificando corretamente os dois macrodesafios com seus números e descrições completas, sem adicionar informações além do documento."
+      }
+    }
+  },
+  {
+    "id": 10,
+    "pergunta": "Qual é o custo estimado da ação AC 12, que trata da manutenção atualizada do parque computacional de TI do TJGO?",
+    "tipo": "tabela",
+    "gabarito": "O custo estimado da ação AC 12 (Manter atualizado o parque computacional de TI) é de R$ 62.600.000,00.",
+    "evidencia": "AC 12 Manter atualizado o parque computacional de TI DEZ./2026 CUSTO R$62.600.000,00",
+    "stores": {
+      "pdf": {
+        "resposta": "Com base no contexto fornecido, o custo estimado da ação **AC 12 - Manter atualizado o parque computacional de TI** é de **R$ 62.600.000,00**, com previsão de conclusão para **DEZ./2026**.",
+        "retrieval_ms": 1027,
+        "evidence_recall": 1.0,
+        "top_rerank": 0.9453,
+        "mean_rerank": 0.7506,
+        "n_sources": 7,
+        "vector_hits": 15,
+        "lexical_hits": 15,
+        "fused": 21,
+        "pages": [
+          "11",
+          "41",
+          "43",
+          "74",
+          "76",
+          "78",
+          "79"
+        ],
+        "acuracia": 5,
+        "completude": 5,
+        "fidelidade": 5,
+        "justificativa": "A resposta reproduz corretamente o valor de R$ 62.600.000,00 e acrescenta informação sobre prazo (DEZ./2026) que é consistente com o documento, sem contradizer o gabarito."
+      },
+      "md": {
+        "resposta": "Com base no contexto fornecido, o custo estimado da ação **AC 12** — \"Manter atualizado o parque computacional de TI\" — é de **R$ 62.600.000,00**, com previsão de conclusão para **DEZ./2026**.",
+        "retrieval_ms": 1122,
+        "evidence_recall": 1.0,
+        "top_rerank": 0.9492,
+        "mean_rerank": 0.9492,
+        "n_sources": 1,
+        "vector_hits": 15,
+        "lexical_hits": 15,
+        "fused": 25,
+        "pages": [
+          "0"
+        ],
+        "acuracia": 5,
+        "completude": 5,
+        "fidelidade": 5,
+        "justificativa": "A resposta reproduz exatamente o valor do gabarito (R$ 62.600.000,00) e acrescenta apenas a data de conclusão, informação plausível do documento sem contradizer o gabarito."
+      }
+    }
+  },
+  {
+    "id": 11,
+    "pergunta": "Qual é a composição do Comitê Gestor de Segurança da Informação (CGSI) conforme o Decreto nº 1.299/2025?",
+    "tipo": "lista",
+    "gabarito": "O CGSI é composto por: Juiz(a) Auxiliar da Presidência com competência em TI; Secretário(a) de Governança Judiciária e Tecnológica; Diretor(a) Judiciário; Diretor(a) de Tecnologia da Informação da Presidência; Diretor(a) de Soluções em Tecnologia da Informação; Coordenador(a) de Infraestrutura Tecnológica; e Núcleo de Segurança e Administração de Dados.",
+    "evidencia": "COMITÊ GESTOR DE SEGURANÇA DA INFORMAÇÃO - CGSI, COMPOSTO DA SEGUINTE FORMA (DECRETO Nº 1.299/2025)",
+    "stores": {
+      "pdf": {
+        "resposta": "## Composição do CGSI conforme o Decreto nº 1.299/2025\n\nDe acordo com o **Decreto nº 1.299/2025**, o Comitê Gestor de Segurança da Informação (CGSI) é composto pelos seguintes membros:\n\n1. **Juiz(a) Auxiliar da Presidência** com a competência delegada para atuarem em demandas pertinentes à tecnologia da informação;\n2. **Secretário(a) de Governança Judiciária e Tecnológica**;\n3. **Diretor(a) Judiciário**;\n4. **Diretor(a) de Tecnologia da Informação da Presidência**;\n5. **Diretor(a) de Soluções em Tecnologia da Informação**;\n6. **Coordenador(a) de Infraestrutura Tecnológica**;\n7. **Núcleo de Segurança e Administração de Dados**.",
+        "retrieval_ms": 1040,
+        "evidence_recall": 1.0,
+        "top_rerank": 0.9336,
+        "mean_rerank": 0.6351,
+        "n_sources": 7,
+        "vector_hits": 15,
+        "lexical_hits": 15,
+        "fused": 21,
+        "pages": [
+          "11",
+          "18",
+          "29",
+          "3",
+          "30",
+          "32",
+          "33"
+        ],
+        "acuracia": 5,
+        "completude": 5,
+        "fidelidade": 5,
+        "justificativa": "A resposta lista todos os 7 membros do CGSI com precisão idêntica ao gabarito, sem adicionar informações além do documento."
+      },
+      "md": {
+        "resposta": "## Composição do CGSI conforme o Decreto nº 1.299/2025\n\nDe acordo com o **Decreto nº 1.299/2025**, o Comitê Gestor de Segurança da Informação (CGSI) é composto da seguinte forma:\n\n1. Juiz(a) Auxiliar da Presidência com a competência delegada para atuarem em demandas pertinentes à tecnologia da informação;\n2. Secretário(a) de Governança Judiciária e Tecnológica;\n3. Diretor(a) Judiciário;\n4. Diretor(a) de Tecnologia da Informação da Presidência;\n5. Diretor(a) de Soluções em Tecnologia da Informação;\n6. Coordenador(a) de Infraestrutura Tecnológica;\n7. Núcleo de Segurança e Administração de Dados.",
+        "retrieval_ms": 843,
+        "evidence_recall": 1.0,
+        "top_rerank": 0.957,
+        "mean_rerank": 0.957,
+        "n_sources": 1,
+        "vector_hits": 15,
+        "lexical_hits": 15,
+        "fused": 22,
+        "pages": [
+          "0"
+        ],
+        "acuracia": 5,
+        "completude": 5,
+        "fidelidade": 5,
+        "justificativa": "A resposta lista todos os 7 membros do CGSI com precisão, cobrindo integralmente o gabarito sem adicionar informações além do documento."
+      }
+    }
+  },
+  {
+    "id": 12,
+    "pergunta": "Qual documento de referência trata da Política de Gestão de Pessoas de TIC no âmbito do Poder Judiciário do Estado de Goiás?",
+    "tipo": "tabela",
+    "gabarito": "A Resolução TJGO 128/2020 institui a Política de Gestão de Pessoas de TIC no âmbito do Poder Judiciário do Estado de Goiás.",
+    "evidencia": "Resolução TJGO 128/2020 | Institui a Política de Gestão de Pessoas de TIC no âmbito do Poder Judiciário do Estado de Goiás",
+    "stores": {
+      "pdf": {
+        "resposta": "Com base no contexto fornecido, o documento de referência que trata da **Política de Gestão de Pessoas de TIC** no âmbito do Poder Judiciário do Estado de Goiás é a **Resolução TJGO 128/2020**, que institui essa política.",
+        "retrieval_ms": 1097,
+        "evidence_recall": 1.0,
+        "top_rerank": 0.957,
+        "mean_rerank": 0.7902,
+        "n_sources": 7,
+        "vector_hits": 15,
+        "lexical_hits": 15,
+        "fused": 25,
+        "pages": [
+          "1",
+          "16",
+          "21",
+          "32",
+          "38",
+          "58",
+          "7"
+        ],
+        "acuracia": 5,
+        "completude": 5,
+        "fidelidade": 5,
+        "justificativa": "A resposta identifica corretamente a Resolução TJGO 128/2020 como o documento que institui a Política de Gestão de Pessoas de TIC no âmbito do Poder Judiciário do Estado de Goiás, sem adicionar informações além do gabarito."
+      },
+      "md": {
+        "resposta": "Com base no contexto fornecido, o documento que trata da Política de Gestão de Pessoas de TIC no âmbito do Poder Judiciário do Estado de Goiás é a **Resolução TJGO 128/2020**, que **\"Institui a Política de Gestão de Pessoas de TIC no âmbito do Poder Judiciário do Estado de Goiás\"**.",
+        "retrieval_ms": 719,
+        "evidence_recall": 1.0,
+        "top_rerank": 0.9648,
+        "mean_rerank": 0.9648,
+        "n_sources": 1,
+        "vector_hits": 15,
+        "lexical_hits": 15,
+        "fused": 26,
+        "pages": [
+          "0"
+        ],
+        "acuracia": 5,
+        "completude": 5,
+        "fidelidade": 5,
+        "justificativa": "A resposta identifica corretamente a Resolução TJGO 128/2020 como o documento que institui a Política de Gestão de Pessoas de TIC no âmbito do Poder Judiciário do Estado de Goiás, sem adicionar informações além do gabarito."
+      }
+    }
+  },
+  {
+    "id": 13,
+    "pergunta": "Qual é o objetivo principal (Objective) definido na metodologia OKR adotada para o monitoramento do PDTIC?",
+    "tipo": "fato",
+    "gabarito": "O objetivo principal definido é 'Aumentar a satisfação dos usuários com recursos de TIC'.",
+    "evidencia": "OBJETIVO Aumentar a satisfação dos usuários com recursos de TIC",
+    "stores": {
+      "pdf": {
+        "resposta": "## Objetivo Principal (Objective) do OKR do PDTIC\n\nCom base no contexto fornecido, o objetivo principal definido na metodologia OKR adotada para o monitoramento do PDTIC é:\n\n> **\"Aumentar a satisfação dos usuários com recursos de TIC\"**\n\nEste objetivo está associado a três Resultados-Chave (KRs):\n\n- **KR-1:** Cumprir 80% das Ações Planejadas dentro do prazo de conclusão definido no quadro de ações\n- **KR-2:** Concluir 25 demandas de aquisições de TIC do plano de contratação anual vigente\n- **KR-3:** Manter 93% de compliance quanto à transparência, aprovação e revisão dos planejamentos táticos e processos e planos de negócio em TIC",
+        "retrieval_ms": 1007,
+        "evidence_recall": 1.0,
+        "top_rerank": 0.918,
+        "mean_rerank": 0.7723,
+        "n_sources": 7,
+        "vector_hits": 15,
+        "lexical_hits": 15,
+        "fused": 25,
+        "pages": [
+          "13",
+          "39",
+          "40",
+          "41",
+          "59",
+          "7",
+          "8"
+        ],
+        "acuracia": 5,
+        "completude": 5,
+        "fidelidade": 5,
+        "justificativa": "A resposta reproduz exatamente o objetivo principal do gabarito e acrescenta informações sobre os KRs que são consistentes com o documento, sem apresentar alucinações."
+      },
+      "md": {
+        "resposta": "Com base no contexto fornecido, o **Objetivo (O)** principal de TIC definido na metodologia OKR é:\n\n**\"Aumentar a satisfação dos usuários com recursos de TIC\"**\n\nEsse objetivo aparece no cabeçalho da tabela de OKRs do documento, ao qual estão vinculados os Resultados-Chave (KRs) utilizados para o monitoramento tático do PDTIC 2025-2027.",
+        "retrieval_ms": 1449,
+        "evidence_recall": 0.8,
+        "top_rerank": 0.8789,
+        "mean_rerank": 0.8789,
+        "n_sources": 1,
+        "vector_hits": 15,
+        "lexical_hits": 15,
+        "fused": 24,
+        "pages": [
+          "0"
+        ],
+        "acuracia": 5,
+        "completude": 5,
+        "fidelidade": 5,
+        "justificativa": "A resposta reproduz exatamente o objetivo definido no gabarito e acrescenta apenas informações contextuais coerentes com o documento, sem alucinações."
+      }
+    }
+  },
+  {
+    "id": 14,
+    "pergunta": "Qual é o custo estimado da ação AC 05, que trata da contratação de solução tecnológica integrada para comunicação e trabalho colaborativo?",
+    "tipo": "tabela",
+    "gabarito": "O custo estimado da ação AC 05 é de R$ 15.000.000,00.",
+    "evidencia": "AC 05 | Elaborar estudo técnico visando a contratação de solução tecnológica integrada para comunicação, armazenamento e trabalho colaborativo... CUSTO R$15.000.000,00",
+    "stores": {
+      "pdf": {
+        "resposta": "## Custo da Ação AC 05\n\nO custo estimado da ação **AC 05** é de **R$ 15.000.000,00** (quinze milhões de reais).\n\nEssa ação consiste em elaborar estudo técnico visando a contratação de solução tecnológica integrada para comunicação, armazenamento e trabalho colaborativo (como Microsoft 365, Google Workspace, entre outros), com previsão de conclusão para **outubro de 2025**.",
+        "retrieval_ms": 1190,
+        "evidence_recall": 1.0,
+        "top_rerank": 0.9453,
+        "mean_rerank": 0.5583,
+        "n_sources": 6,
+        "vector_hits": 15,
+        "lexical_hits": 15,
+        "fused": 23,
+        "pages": [
+          "41",
+          "74",
+          "75",
+          "76",
+          "77",
+          "9"
+        ],
+        "acuracia": 5,
+        "completude": 5,
+        "fidelidade": 5,
+        "justificativa": "A resposta confirma o valor correto de R$ 15.000.000,00 e acrescenta detalhes coerentes com o contexto do documento sem contradizer o gabarito."
+      },
+      "md": {
+        "resposta": "Com base no contexto fornecido, o custo estimado da ação **AC 05**, que trata da elaboração de estudo técnico visando a contratação de solução tecnológica integrada para comunicação, armazenamento e trabalho colaborativo (Microsoft 365, Google Workspace, entre outros), é de **R$ 15.000.000,00**, com previsão de conclusão em **outubro de 2025**.",
+        "retrieval_ms": 771,
+        "evidence_recall": 1.0,
+        "top_rerank": 0.9688,
+        "mean_rerank": 0.9688,
+        "n_sources": 1,
+        "vector_hits": 15,
+        "lexical_hits": 15,
+        "fused": 24,
+        "pages": [
+          "0"
+        ],
+        "acuracia": 5,
+        "completude": 5,
+        "fidelidade": 4,
+        "justificativa": "O valor R$ 15.000.000,00 está correto e completo, mas a resposta acrescenta detalhes (data de conclusão outubro/2025, exemplos de ferramentas) que vão além do gabarito, podendo ser informações do documento mas não verificáveis pelo gabarito fornecido."
+      }
+    }
+  },
+  {
+    "id": 15,
+    "pergunta": "Em 2022, qual foi a posição do TJGO na classificação geral do ranking iGovTIC-JUD e qual nível de maturidade foi alcançado?",
+    "tipo": "numero",
+    "gabarito": "Em 2022, o TJGO obteve o 23º lugar na classificação geral entre 93 órgãos avaliados, alcançando o nível de maturidade 'Excelência'.",
+    "evidencia": "O TJGO obteve o 23º lugar na classificação geral (Figura 03), entre 93 órgãos avaliados, marcando o melhor desempenho e posicionamento desde o início da participação no levantamento anual. Esse resultado reflete o alcance do nível de maturidade \"Excelência\"",
+    "stores": {
+      "pdf": {
+        "resposta": "Com base no contexto fornecido, em 2022 o TJGO obteve o **23º lugar na classificação geral**, entre 93 órgãos avaliados, no ranking de maturidade em Governança, Gestão e Infraestrutura de TIC promovido pelo CNJ.\n\nO nível de maturidade alcançado foi o de **\"Excelência\"**, descrito como um marco significativo e o melhor desempenho e posicionamento do TJGO desde o início de sua participação no levantamento anual.",
+        "retrieval_ms": 1172,
+        "evidence_recall": 1.0,
+        "top_rerank": 0.9336,
+        "mean_rerank": 0.8242,
+        "n_sources": 5,
+        "vector_hits": 15,
+        "lexical_hits": 15,
+        "fused": 21,
+        "pages": [
+          "17",
+          "18",
+          "19",
+          "20",
+          "22"
+        ],
+        "acuracia": 5,
+        "completude": 5,
+        "fidelidade": 5,
+        "justificativa": "A resposta contém todos os fatos do gabarito (23º lugar, 93 órgãos, nível Excelência) sem adicionar informações contraditórias ou inventadas."
+      },
+      "md": {
+        "resposta": "Com base no contexto fornecido, em 2022 o TJGO alcançou o **23º lugar na classificação geral**, entre 93 órgãos avaliados, e atingiu o nível de maturidade **\"Excelência\"**, marcando o melhor desempenho e posicionamento do Tribunal desde o início de sua participação no levantamento anual promovido pelo Conselho Nacional de Justiça (CNJ).",
+        "retrieval_ms": 889,
+        "evidence_recall": 1.0,
+        "top_rerank": 0.9414,
+        "mean_rerank": 0.9414,
+        "n_sources": 1,
+        "vector_hits": 15,
+        "lexical_hits": 15,
+        "fused": 21,
+        "pages": [
+          "0"
+        ],
+        "acuracia": 5,
+        "completude": 5,
+        "fidelidade": 5,
+        "justificativa": "A resposta reproduz com exatidão todos os dados do gabarito (23º lugar, 93 órgãos, nível 'Excelência') e acrescenta apenas informação contextual plausível sobre o CNJ, sem contradizer o documento."
+      }
+    }
+  }
+]

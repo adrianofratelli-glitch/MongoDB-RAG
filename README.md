@@ -49,13 +49,16 @@ A ingestão aceita PDF, DOCX, TXT, CSV, Markdown, HTML, JSON, XLSX e PPTX.
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+# Setup/ingestão multiformato (inclui as dependências enxutas da API)
+pip install -r requirements-ingest.txt
 cp .env.example .env          # chaves + valores do tenant
 python setup_db.py            # coleções + vector_index + text_index
 python ingest.py data/document.pdf
 cp client_config.example.json client_config.json   # perguntas iniciais (opcional)
 ./run.sh                      # backend :8180, frontend :5180
 ```
+
+Por padrão, o launcher serve o build otimizado do frontend sem watcher. Para editar com HMR, rode `POV_DEV=1 ./run.sh`; o build só é refeito quando fontes, lockfile ou configuração mudam.
 
 ```env
 MONGO_URI=

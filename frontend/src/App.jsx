@@ -11,7 +11,14 @@ import ChatInput from './components/ChatInput'
 import Footer from './components/Footer'
 import { C } from './theme'
 
-const uuid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2))
+const uuid = () => {
+  if (crypto.randomUUID) return crypto.randomUUID()
+  const bytes = crypto.getRandomValues(new Uint8Array(16))
+  bytes[6] = (bytes[6] & 0x0f) | 0x40
+  bytes[8] = (bytes[8] & 0x3f) | 0x80
+  const hex = [...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join('')
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+}
 
 const OFFLINE_CONFIG = {
   client_name: 'RAG PoC',
@@ -32,7 +39,7 @@ export default function App() {
   const [totalQueries, setTotalQueries] = useState(0)
   const [error, setError] = useState(null)
   const [reconnecting, setReconnecting] = useState(false)
-  const [accessLevel, setAccessLevel] = useState('restrito') // 'publico' | 'restrito'
+  const [accessLevel, setAccessLevel] = useState('publico') // produção deriva isso de claims autenticadas
   const endRef = useRef(null)
 
   const refreshStatus = async (force = false) => {

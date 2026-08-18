@@ -45,6 +45,15 @@ stop() {
 start() {
   mkdir -p "$LOG_DIR"
   [ -d frontend/node_modules ] || { echo "Installing frontend dependencies (first run)..."; (cd frontend && npm install); }
+  if [ "${POV_DEV:-0}" != "1" ] && {
+    [ ! -f frontend/dist/index.html ] ||
+    [ -n "$(find frontend/src -type f -newer frontend/dist/index.html -print -quit)" ] ||
+    [ frontend/package-lock.json -nt frontend/dist/index.html ] ||
+    [ frontend/vite.config.js -nt frontend/dist/index.html ];
+  }; then
+    echo "Building optimized frontend..."
+    (cd frontend && npm run build)
+  fi
 
   # Backend
   pid="$(pid_on_port "$BACKEND_PORT" || true)"
@@ -54,10 +63,15 @@ start() {
   elif mine "$pid"; then echo "backend  already up (pid $pid)"
   else echo "Port $BACKEND_PORT is used by another project — aborting."; exit 1; fi
 
-  # Frontend — run vite directly (not via npm) so it survives the terminal closing
+  # Preview estático por padrão, sem watcher/HMR. POV_DEV=1 mantém o fluxo de edição.
   pid="$(pid_on_port "$FRONTEND_PORT" || true)"
   if [ -z "$pid" ]; then
-    ( cd frontend && nohup node_modules/.bin/vite > "$LOG_DIR/frontend.log" 2>&1 < /dev/null & )
+    if [ "${POV_DEV:-0}" = "1" ]; then
+      FRONTEND_CMD=(node_modules/.bin/vite --host 127.0.0.1 --port "$FRONTEND_PORT" --strictPort)
+    else
+      FRONTEND_CMD=(node_modules/.bin/vite preview --host 127.0.0.1 --port "$FRONTEND_PORT" --strictPort)
+    fi
+    ( cd frontend && nohup "${FRONTEND_CMD[@]}" > "$LOG_DIR/frontend.log" 2>&1 < /dev/null & )
     echo "frontend started  -> http://localhost:$FRONTEND_PORT"
   elif mine "$pid"; then echo "frontend already up (pid $pid)"
   else echo "Port $FRONTEND_PORT is used by another project — aborting."; exit 1; fi

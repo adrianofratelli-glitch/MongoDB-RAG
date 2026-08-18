@@ -30,7 +30,9 @@ export async function streamChat({ question, messages, threadId, accessLevel }, 
         question,
         messages,
         thread_id: threadId,
-        access_level: accessLevel || 'restrito',
+        // Default-deny: restricted access must be an explicit UI choice. In a
+        // production deployment this value must come from authenticated claims.
+        access_level: accessLevel || 'publico',
       }),
     })
   } catch {
