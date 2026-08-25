@@ -24,6 +24,19 @@ pid_on_port() { lsof -nP -iTCP:"$1" -sTCP:LISTEN -t 2>/dev/null | head -1; }
 cwd_of_pid()  { lsof -p "$1" -a -d cwd -Fn 2>/dev/null | sed -n 's/^n//p'; }
 mine()        { case "$(cwd_of_pid "$1")" in "$ROOT"*) return 0 ;; *) return 1 ;; esac; }
 
+# O uvicorn leva alguns segundos importando langchain/voyage antes de servir.
+# Sem esta espera o launcher abre o browser cedo demais e a UI cai na casca offline.
+wait_for_backend() {
+  for _ in $(seq 1 60); do
+    if curl -sf -m 2 "http://127.0.0.1:$BACKEND_PORT/api/health" > /dev/null 2>&1; then
+      return 0
+    fi
+    sleep 1
+  done
+  echo "backend  did not answer /api/health in 60s — check $LOG_DIR/backend.log"
+  return 1
+}
+
 status() {
   for pair in "backend $BACKEND_PORT" "frontend $FRONTEND_PORT"; do
     # shellcheck disable=SC2086
@@ -75,6 +88,9 @@ start() {
     echo "frontend started  -> http://localhost:$FRONTEND_PORT"
   elif mine "$pid"; then echo "frontend already up (pid $pid)"
   else echo "Port $FRONTEND_PORT is used by another project — aborting."; exit 1; fi
+
+  echo "waiting for backend to answer /api/health..."
+  wait_for_backend || exit 1
 
   echo ""
   echo "Open http://localhost:$FRONTEND_PORT   (logs in .logs/ · stop with ./run.sh stop)"

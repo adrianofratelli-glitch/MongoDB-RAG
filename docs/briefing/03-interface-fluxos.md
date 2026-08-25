@@ -59,6 +59,7 @@ Sem router. Uma tela só, porque a demo é uma conversa.
 | `TopBar` | `access_level`, status do banco, nova conversa e reconexão |
 | `OfflineHero` | tela quando o Atlas não responde, com o nome do banco e o botão de reconectar |
 | `Welcome` | perguntas prontas pra clicar. **Ninguém digita durante apresentação** |
+| `DocumentsPanel` | biblioteca do tenant: arrasta um arquivo e ele entra na esteira, com progresso por chunk; marca quais documentos a recuperação enxerga; remove o que foi enviado na demo |
 
 O `EngineStrip` existe por um motivo específico: **"busca híbrida" é fácil de afirmar e difícil de provar.** Com ele na tela, uma pergunta com número de norma mostra a lexical pesando, e uma pergunta conceitual mostra a vetorial pesando. O argumento se demonstra sozinho, sem eu narrar.
 
@@ -90,10 +91,10 @@ Não inverte essa ordem por conveniência de implementação.
 3. **Abrir as fontes.** Cada resposta cita os chunks que a fundamentaram, com o badge de motor e os scores vetorial → rerank. Nada de resposta sem procedência.
 4. **Alternar pra `restrito`.** Conteúdo que estava fora da resposta aparece. Explicar que o filtro está nos dois estágios, não depois da fusão.
 5. **Recarregar a página e retomar pelo `thread_id`.** A conversa está no Atlas.
-6. **Ingerir um documento novo de outro formato** (XLSX ou PPTX) e perguntar sobre ele.
+6. **Ingerir um documento novo de outro formato** (XLSX ou PPTX) e perguntar sobre ele — pela CLI, ou arrastando na tela em **Base de conhecimento**. Depois marcar só ele e repetir uma pergunta do documento original: o assistente diz que aquilo não está no contexto. É a prova de que o filtro por `metadata.source` roda dentro das duas buscas, e é o momento em que o cliente entende que pode mandar o documento *dele* na reunião.
 7. **Trocar o `.env` pra outro `CLIENT_ID`.** Outro database, outro documento, outra persona — **mesmo código rodando.**
 
-O passo 7 é o fecho da conversa comercial. É ele que transforma "vocês fizeram uma demo pra um órgão" em "vocês têm uma plataforma".
+O passo 6 é o que torna a PoV utilizável com qualquer cliente sem preparação prévia; o passo 7 é o fecho da conversa comercial. É ele que transforma "vocês fizeram uma demo pra um órgão" em "vocês têm uma plataforma".
 
 ## Nota sobre capturas de tela
 

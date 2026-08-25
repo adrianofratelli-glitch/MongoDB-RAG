@@ -28,6 +28,16 @@ def setup() -> None:
         expireAfterSeconds=int(timedelta(days=retention_days).total_seconds()),
     )
 
+    # Demo uploads stamp metadata.expires_at; the TTL monitor sweeps them once
+    # that timestamp passes. Chunks ingested without the field (the pre-loaded
+    # corpus) are ignored by the TTL index and never expire.
+    db["documents"].create_index(
+        "metadata.expires_at",
+        name="uploads_ttl",
+        expireAfterSeconds=0,
+    )
+    print("Ensured TTL index on documents.metadata.expires_at (demo uploads only)")
+
     # Atlas Search indexes (hybrid search)
     docs = db["documents"]
     have = {ix["name"] for ix in docs.list_search_indexes()}
@@ -37,6 +47,8 @@ def setup() -> None:
         "fields": [
             {"type": "vector", "path": "embedding", "numDimensions": 1024, "similarity": "cosine"},
             {"type": "filter", "path": "metadata.nivel_acesso"},
+            # Lets the UI restrict retrieval to the documents picked there.
+            {"type": "filter", "path": "metadata.source"},
         ]
     }
     if "vector_index" not in have:
@@ -47,17 +59,19 @@ def setup() -> None:
         print("Updated vector index: vector_index (ensures access-control filter)")
 
     # Lexical index (Atlas Search / BM25) for the lexical leg of hybrid search
+    text_def = {"mappings": {"dynamic": False, "fields": {
+        "text": {"type": "string"},
+        "metadata": {"type": "document", "fields": {
+            "nivel_acesso": {"type": "token"},
+            "source": {"type": "token"},
+        }},
+    }}}
     if "text_index" not in have:
-        docs.create_search_index({
-            "name": "text_index", "type": "search",
-            "definition": {"mappings": {"dynamic": False, "fields": {
-                "text": {"type": "string"},
-                "metadata": {"type": "document", "fields": {"nivel_acesso": {"type": "token"}}},
-            }}},
-        })
+        docs.create_search_index({"name": "text_index", "type": "search", "definition": text_def})
         print("Created lexical index: text_index")
     else:
-        print("Lexical index already exists: text_index")
+        docs.update_search_index("text_index", text_def)
+        print("Updated lexical index: text_index (ensures the source filter field)")
 
     print(f"\nCollections in '{DB_NAME}':")
     for col in db.list_collection_names():

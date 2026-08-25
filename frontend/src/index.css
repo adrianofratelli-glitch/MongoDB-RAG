@@ -360,3 +360,27 @@ body::after {
     overflow-wrap: anywhere;
   }
 }
+
+/* ===== Document library (upload + retrieval scope) ===== */
+.docs-panel { border: 1px solid var(--border-subtle); border-radius: 12px; background: rgba(0, 0, 0, 0.2); margin: 12px 0 4px; }
+.docs-toggle { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 0 14px; border: 0; background: transparent; color: var(--text); font: 600 12px var(--mono); text-transform: uppercase; letter-spacing: 0.08em; cursor: pointer; }
+.docs-scope { margin-left: auto; text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--sub); }
+.docs-body { padding: 4px 14px 14px; }
+.docs-drop { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 20px; border: 1px dashed var(--border-subtle); border-radius: 10px; color: var(--sub); font-size: 13px; text-align: center; }
+.docs-drop.dragging { border-color: var(--green); background: rgba(0, 237, 100, 0.06); }
+.docs-hint { font-family: var(--mono); font-size: 10px; color: var(--sub); margin: 4px 0 0; }
+.docs-link { border: 0; background: none; padding: 0; color: var(--green); font: inherit; cursor: pointer; text-decoration: underline; }
+.docs-link:disabled { opacity: 0.5; cursor: not-allowed; }
+.docs-job { margin-top: 12px; }
+.docs-job-head { display: flex; justify-content: space-between; gap: 10px; font-family: var(--mono); font-size: 10px; color: var(--text); margin-bottom: 6px; }
+.docs-error { color: #FF6960; font-size: 12px; margin: 10px 0 0; }
+.docs-list { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.docs-list li { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--border-subtle); border-radius: 8px; }
+.docs-list li.active { border-color: var(--border-accent); background: rgba(0, 237, 100, 0.06); }
+.docs-list label { display: flex; align-items: center; gap: 8px; flex: 1; cursor: pointer; min-width: 0; }
+.docs-name { color: var(--text); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.docs-meta { font-family: var(--mono); font-size: 10px; color: var(--sub); }
+.docs-tag { font: 700 9px var(--mono); color: #F5C518; border: 1px solid #F5C51855; border-radius: 4px; padding: 0 5px; text-transform: uppercase; }
+.docs-tag.base { color: var(--green, #00ED64); border-color: #00ED6455; }
+.docs-empty { justify-content: center; color: var(--sub); font-size: 12px; }
+.docs-tag.ttl { color: #3D9BFF; border-color: #3D9BFF55; }

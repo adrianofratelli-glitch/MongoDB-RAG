@@ -6,6 +6,7 @@ import Welcome from './components/Welcome'
 import OfflineHero from './components/OfflineHero'
 import ChatMessage from './components/ChatMessage'
 import ChatInput from './components/ChatInput'
+import DocumentsPanel from './components/DocumentsPanel'
 import { C } from './theme'
 
 const uuid = () => {
@@ -36,6 +37,8 @@ export default function App() {
   const [error, setError] = useState(null)
   const [reconnecting, setReconnecting] = useState(false)
   const [accessLevel, setAccessLevel] = useState('publico') // produção deriva isso de claims autenticadas
+  // Documentos escolhidos na biblioteca; vazio = consulta todo o corpus do tenant.
+  const [sources, setSources] = useState([])
   const endRef = useRef(null)
 
   const refreshStatus = async (force = false) => {
@@ -47,13 +50,18 @@ export default function App() {
   }
 
   useEffect(() => {
-    getConfig().then(setConfig).catch(() => {
-      setConfig(OFFLINE_CONFIG)
-      setError('A API não respondeu. Inicie o backend e tente reconectar.')
-    })
-    getStatus()
-      .then(setStatus)
-      .catch(() => setStatus({ online: false, chunks: null }))
+    // getConfig() já reenvia com backoff enquanto o backend termina de subir;
+    // o status só é buscado depois, para não gravar "offline" na corrida de boot.
+    getConfig()
+      .then((cfg) => {
+        setConfig(cfg)
+        return refreshStatus()
+      })
+      .catch(() => {
+        setConfig(OFFLINE_CONFIG)
+        setStatus({ online: false, chunks: null })
+        setError('A API não respondeu. Inicie o backend e tente reconectar.')
+      })
   }, [])
 
   useEffect(() => {
@@ -68,7 +76,7 @@ export default function App() {
     setStreaming(true)
 
     await streamChat(
-      { question, messages: history, threadId, accessLevel },
+      { question, messages: history, threadId, accessLevel, sources },
       {
         onMeta: (evt) =>
           setMessages((prev) => {
@@ -132,6 +140,15 @@ export default function App() {
           <OfflineHero dbName={config.db_name} onReconnect={reconnect} reconnecting={reconnecting} />
         ) : (
           <>
+            <DocumentsPanel
+              selected={sources}
+              onSelected={setSources}
+              onCorpusChange={() => refreshStatus(true)}
+              maxUploadMb={config.max_upload_mb}
+              formats={config.supported_formats}
+              ttlHours={config.upload_ttl_hours}
+            />
+
             {messages.length === 0 ? (
               <Welcome config={config} onPick={send} />
             ) : (
@@ -154,7 +171,7 @@ export default function App() {
             )}
 
             <div ref={endRef} />
-            <ChatInput placeholder={`Pergunte sobre ${config.document_title}…`} disabled={streaming} onSend={send} />
+            <ChatInput placeholder={`Pergunte sobre ${sources.length ? sources.join(', ') : config.document_title}…`} disabled={streaming} onSend={send} />
           </>
         )}
       </main>

@@ -2,9 +2,9 @@
 
 Faça uma pergunta em linguagem natural a um documento de planejamento de 200 páginas e receba uma resposta com citações em segundos. Busca vetorial e lexical rodam em paralelo no Atlas, o RRF funde os ranqueamentos, um re-ranker escolhe as melhores passagens, e o Claude responde usando só elas — em streaming, token a token.
 
-Agnóstico de tenant por design: nenhum nome de cliente, documento ou marca vive no repositório. Um novo tenant é um `.env`, um PDF e um arquivo JSON.
+Agnóstico de tenant por design: nenhum nome de cliente, documento ou marca vive no repositório. Um novo tenant é um `.env`, um PDF e um arquivo JSON. E, na própria tela, dá para enviar um documento novo e conversar com ele em seguida — a mesma esteira de ingestão, sem tocar em linha de comando.
 
-## A demo em 4 passos
+## A demo em 5 passos
 
 **1. Escolha um perfil de acesso e uma pergunta.** O perfil (público / restrito) é o filtro de ACL aplicado às *duas* etapas de busca, com negação por padrão.
 
@@ -19,6 +19,10 @@ Agnóstico de tenant por design: nenhum nome de cliente, documento ou marca vive
 **4. Confira as fontes.** Toda resposta carrega as passagens e páginas de onde veio, então dá para verificar em vez de confiar.
 
 ![Passagens citadas como fonte, com os números de página](docs/screenshots/03-sources.png)
+
+**5. Envie um documento na hora.** Em **Base de conhecimento**, arraste um arquivo: ele é fatiado, embedado com `voyage-3` e indexado no mesmo banco do tenant, com barra de progresso. Marque o documento recém-enviado e a recuperação passa a rodar só sobre ele — os dois filtros de busca ganham `metadata.source` junto com o nível de acesso. Conteúdo enviado assim é descartável: expira sozinho em 24h por um índice TTL, então demos sucessivas não deixam vetores acumulados para trás.
+
+![Painel da base de conhecimento com o upload em progresso e os documentos indexados](docs/screenshots/04-upload.png)
 
 > Os screenshots rodam contra um tenant real; os nomes da organização e do documento foram substituídos por nomes neutros.
 
@@ -41,7 +45,7 @@ graph TD
 
 Se um dos dois índices falhar, o outro sustenta a consulta. O bloco estável de instruções (incluindo um sumário do documento) fica em cache na API da Anthropic, então turnos repetidos custam menos. As conversas são persistidas no MongoDB e retomadas pelo thread ID.
 
-A ingestão aceita PDF, DOCX, TXT, CSV, Markdown, HTML, JSON, XLSX e PPTX.
+A ingestão aceita PDF, DOCX, TXT, CSV, Markdown, HTML, JSON, XLSX e PPTX — pela CLI (`ingest.py`) ou pelo upload na UI, que enfileira um job e devolve o progresso em `/api/documents/jobs/{job_id}`. Os documentos convivem na mesma coleção, separados por `metadata.source`, que é campo de filtro nos dois índices de busca.
 
 > Prova de conceito: o nível de acesso é escolhido na UI para fins de demonstração. Em produção viria da autenticação (SSO / JWT), nunca do cliente.
 
@@ -72,13 +76,17 @@ DOCUMENT_DESCRIPTION=Exibido no cabeçalho
 
 Os índices de busca do Atlas levam cerca de um minuto para ficarem consultáveis. Ingira conteúdo restrito com `--nivel restrito`, reindexe com `--reset`. O tier gratuito da VoyageAI permite 3 requisições por minuto, então a ingestão gera embeddings em lotes pequenos com uma pausa (`VOYAGE_SLEEP_S`) e insere cada lote conforme avança, para que uma interrupção não perca o progresso.
 
-Opcionais: `DB_NAME`, `SYSTEM_PROMPT_EXTRA`, `ALLOWED_ORIGINS`.
+Opcionais: `DB_NAME`, `SYSTEM_PROMPT_EXTRA`, `ALLOWED_ORIGINS`, `MAX_UPLOAD_MB` (padrão 25), `UPLOAD_DIR` (padrão `data/uploads`), `UPLOAD_TTL_HOURS` (padrão 24; `0` torna o upload permanente).
+
+O TTL marca `metadata.expires_at` **só** nos chunks enviados pela UI. O corpus ingerido pela CLI não recebe o campo, e o varredor de TTL do MongoDB ignora documentos onde o campo indexado não existe — então o documento de referência do tenant nunca expira. O arquivo enviado também é apagado do disco assim que os vetores chegam ao Atlas. Para ingerir pela CLI com prazo, use `--ttl-horas 24`.
+
+Uploads rodam em um único worker: a mesma cota da VoyageAI limita a ingestão, então jobs enfileiram em vez de competir. Um documento grande leva minutos no tier gratuito — em demo ao vivo, prefira arquivos pequenos ou uma chave paga com `VOYAGE_SLEEP_S` baixo.
 
 Testes: `python -m unittest discover -s tests -v` — lógica pura, sem serviços ao vivo.
 
 ## Fronteira de produção
 
-Histórico do chat, tamanho do sumário, tokens de saída e streams RAG concorrentes são limitados; a imagem roda como UID 10001 atrás do nginx com cabeçalhos de segurança. O filtro por nível de acesso é aplicado nos dois caminhos de recuperação, mas o nível selecionado ainda vem do cliente nesta PoV. Uma implantação externa exige tenant e claims de ACL derivados de SSO/JWT; nunca confie no `access_level` vindo da requisição.
+Histórico do chat, tamanho do sumário, tokens de saída e streams RAG concorrentes são limitados; a imagem roda como UID 10001 atrás do nginx com cabeçalhos de segurança. O filtro por nível de acesso é aplicado nos dois caminhos de recuperação, mas o nível selecionado ainda vem do cliente nesta PoV. O upload valida extensão, tamanho e nome do arquivo, mas — como todo endpoint aqui — não exige autenticação: quem alcança a API indexa ou remove documentos do tenant. Uma implantação externa exige tenant e claims de ACL derivados de SSO/JWT; nunca confie no `access_level` vindo da requisição.
 
 ## Adicionando um tenant
 
@@ -91,6 +99,7 @@ backend/api.py     app FastAPI (config / status / chat SSE / métricas)
 frontend/          React + Vite + LeafyGreen
 agent.py           busca híbrida + RRF + rerank, com ACL
 ingest.py          ingestão multiformato (--nivel define o nível de acesso)
+backend/documents.py  biblioteca de documentos: upload, jobs de ingestão, remoção
 setup_db.py        coleções e os dois índices de busca
 config.py db.py    configuração e cliente Mongo compartilhado
 observability.py   logging estruturado + /api/metrics

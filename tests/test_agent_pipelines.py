@@ -50,3 +50,33 @@ class TestLexicalPipeline(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestSourceFilter(unittest.TestCase):
+    def test_vector_combines_access_and_source_filters(self):
+        pipeline = _vector_pipeline([0.1], top_k=5, access_levels=["publico"], sources=["doc-a"])
+        self.assertEqual(
+            pipeline[0]["$vectorSearch"]["filter"],
+            {"$and": [
+                {"metadata.nivel_acesso": {"$in": ["publico"]}},
+                {"metadata.source": {"$in": ["doc-a"]}},
+            ]},
+        )
+
+    def test_vector_source_only_filter_is_not_wrapped(self):
+        pipeline = _vector_pipeline([0.1], top_k=5, access_levels=[], sources=["doc-a"])
+        self.assertEqual(
+            pipeline[0]["$vectorSearch"]["filter"], {"metadata.source": {"$in": ["doc-a"]}}
+        )
+
+    def test_lexical_adds_source_token_filter(self):
+        pipeline = _lexical_pipeline("prazo", top_k=5, access_levels=["publico"], sources=["doc-a"])
+        self.assertIn(
+            {"in": {"path": "metadata.source", "value": ["doc-a"]}},
+            pipeline[0]["$search"]["compound"]["filter"],
+        )
+
+    def test_no_source_filter_when_omitted(self):
+        pipeline = _lexical_pipeline("prazo", top_k=5, access_levels=["publico"])
+        paths = [list(f["in"].values())[0] for f in pipeline[0]["$search"]["compound"]["filter"]]
+        self.assertNotIn("metadata.source", paths)

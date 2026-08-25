@@ -15,8 +15,10 @@ RUN apt-get update \
 
 WORKDIR /app
 
-COPY requirements.txt ./requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+# The ingestion deps ship with the image too: uploading a document during a
+# demo runs the same pipeline as the CLI, inside this container.
+COPY requirements.txt requirements-ingest.txt ./
+RUN pip install --no-cache-dir -r requirements-ingest.txt
 
 COPY agent.py config.py db.py observability.py ingest.py setup_db.py ./
 COPY backend/ ./backend/

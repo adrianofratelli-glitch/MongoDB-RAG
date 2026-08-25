@@ -25,6 +25,16 @@ db["conversations"].create_index(
 
 Default 30 dias, configurável. Dado de demo que fica pra sempre vira custo pra sempre.
 
+### TTL nos uploads de demo
+
+```python
+db["documents"].create_index("metadata.expires_at", name="uploads_ttl", expireAfterSeconds=0)
+```
+
+Documento que sobe pela tela durante uma apresentação é descartável. Ele carimba `metadata.expires_at` (`UPLOAD_TTL_HOURS`, padrão 24) e some sozinho.
+
+O truque que faz isso ser seguro: **o corpus ingerido pela CLI não recebe o campo**, e o varredor de TTL ignora documento onde o campo indexado não existe. Nada de flag `is_demo`, nada de job de limpeza, nada de filtro extra na busca — a ausência do campo já é a regra. Quem mexer nisso precisa saber: carimbar `expires_at` numa ingestão de corpus base apaga a demo de referência 24h depois, em silêncio.
+
 ## Os dois índices de busca — `setup_db.py`, idempotente
 
 ### `vector_index` (vectorSearch)
@@ -33,6 +43,7 @@ Default 30 dias, configurável. Dado de demo que fica pra sempre vira custo pra 
 {"fields": [
     {"type": "vector", "path": "embedding", "numDimensions": 1024, "similarity": "cosine"},
     {"type": "filter", "path": "metadata.nivel_acesso"},
+    {"type": "filter", "path": "metadata.source"},
 ]}
 ```
 
@@ -43,11 +54,16 @@ Default 30 dias, configurável. Dado de demo que fica pra sempre vira custo pra 
 ```python
 {"mappings": {"dynamic": False, "fields": {
     "text": {"type": "string"},
-    "metadata": {"type": "document", "fields": {"nivel_acesso": {"type": "token"}}},
+    "metadata": {"type": "document", "fields": {
+        "nivel_acesso": {"type": "token"},
+        "source": {"type": "token"},
+    }},
 }}}
 ```
 
-`dynamic: False` de propósito — indexar campo que ninguém consulta é custo de índice sem retorno. `nivel_acesso` como `token` pra viabilizar o `compound.filter`.
+`dynamic: False` de propósito — indexar campo que ninguém consulta é custo de índice sem retorno. `nivel_acesso` e `source` como `token` pra viabilizar o `compound.filter`.
+
+Os dois índices são atualizados (`update_search_index`) mesmo quando já existem: um deploy antigo sem o campo `source` filtraria errado em silêncio.
 
 ## Ingestão
 
@@ -59,13 +75,20 @@ Chunking com `RecursiveCharacterTextSplitter`, **800 caracteres com 150 de overl
 
 Embedding em lotes pequenos, com **pausa de 22 segundos entre eles**: o tier gratuito da VoyageAI limita a 3 requisições por minuto. Deixa registrado que **isso é consequência do tier, não escolha de design** — senão daqui a seis meses alguém vai achar que a pausa tem uma razão arquitetural.
 
-Cada chunk é etiquetado com `nivel_acesso`.
+Cada chunk é etiquetado com `nivel_acesso` e com `source` (o nome do arquivo, normalizado). `source` é o eixo que separa documentos dentro do mesmo tenant: nada de banco novo por documento, nada de esperar build de índice na frente do cliente.
+
+`ingest()` recebe `source_name` e `on_progress(phase, done, total)`. O CLI é um wrapper fino; o mesmo código roda por trás do upload da UI (`backend/documents.py`), em um executor de **um** worker — a cota da VoyageAI é o gargalo, então dois uploads paralelos só trocariam um job lento por dois travados.
 
 ```bash
 python setup_db.py                                    # coleções + vector_index + text_index
 python ingest.py caminho/documento.pdf
 python ingest.py caminho/documento.pdf --reset        # reindexa documento existente
 python ingest.py caminho/anexo.pdf --nivel restrito
+
+# mesma esteira, pela API (o que a UI faz)
+curl -X POST localhost:8180/api/documents -F "file=@documento.pdf" -F "reset=true"
+curl localhost:8180/api/documents/jobs/<job_id>
+curl -X DELETE localhost:8180/api/documents/<source>
 ```
 
 ## Conexão

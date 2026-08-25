@@ -50,7 +50,7 @@ def _embed_query(voyage: voyageai.Client, query: str) -> list:
     return embedding
 
 
-def _vector_pipeline(embedding, top_k, access_levels):
+def _vector_pipeline(embedding, top_k, access_levels, sources=None):
     vs = {
         "index": "vector_index",
         "path": "embedding",
@@ -58,8 +58,13 @@ def _vector_pipeline(embedding, top_k, access_levels):
         "numCandidates": top_k * 15,
         "limit": top_k,
     }
+    conditions = []
     if access_levels:
-        vs["filter"] = {"metadata.nivel_acesso": {"$in": access_levels}}
+        conditions.append({"metadata.nivel_acesso": {"$in": access_levels}})
+    if sources:
+        conditions.append({"metadata.source": {"$in": sources}})
+    if conditions:
+        vs["filter"] = conditions[0] if len(conditions) == 1 else {"$and": conditions}
     return [
         {"$vectorSearch": vs},
         {"$project": {"text": 1, "metadata": 1,
@@ -67,9 +72,13 @@ def _vector_pipeline(embedding, top_k, access_levels):
     ]
 
 
-def _lexical_pipeline(query, top_k, access_levels):
+def _lexical_pipeline(query, top_k, access_levels, sources=None):
     must = [{"text": {"query": query, "path": "text"}}]
-    flt = [{"in": {"path": "metadata.nivel_acesso", "value": access_levels}}] if access_levels else []
+    flt = []
+    if access_levels:
+        flt.append({"in": {"path": "metadata.nivel_acesso", "value": access_levels}})
+    if sources:
+        flt.append({"in": {"path": "metadata.source", "value": sources}})
     return [
         {"$search": {"index": "text_index", "compound": {"must": must, "filter": flt}}},
         {"$limit": top_k},
@@ -79,10 +88,13 @@ def _lexical_pipeline(query, top_k, access_levels):
 
 
 def retrieve_context(query: str, top_k: int = 15,
-                     access_levels: list | None = None) -> tuple[str, list[dict], dict]:
+                     access_levels: list | None = None,
+                     sources: list | None = None) -> tuple[str, list[dict], dict]:
     """Hybrid search: vector ∪ lexical retrieval -> RRF -> rerank-2, with an ACL filter.
 
     access_levels: allowed access levels (e.g. ["publico"]). None means full access.
+    sources: restrict retrieval to these `metadata.source` values (the documents
+    picked in the UI). None/empty means every indexed document in the tenant DB.
     """
     # Somente frases que referenciam explicitamente a conversa — termos soltos
     # ("sessão", "anterior", "histórico") aparecem em perguntas legítimas sobre
@@ -106,14 +118,14 @@ def retrieve_context(query: str, top_k: int = 15,
     # 1) Retrieve from both modalities in parallel (two independent aggregations)
     def _run_vector():
         try:
-            return list(collection.aggregate(_vector_pipeline(embedding, top_k, levels)))
+            return list(collection.aggregate(_vector_pipeline(embedding, top_k, levels, sources)))
         except Exception:
             logger.exception("vector search failed — falling back to lexical-only")
             return []  # tolerant: if the vector index fails, fall back to lexical only
 
     def _run_lexical():
         try:
-            return list(collection.aggregate(_lexical_pipeline(query, top_k, levels)))
+            return list(collection.aggregate(_lexical_pipeline(query, top_k, levels, sources)))
         except Exception:
             logger.exception("lexical search failed — falling back to vector-only")
             return []  # tolerant: if the lexical index fails, fall back to vector only
@@ -162,6 +174,7 @@ def retrieve_context(query: str, top_k: int = 15,
         for c in top_results:
             c["rerank_score"] = round(c.get("vector_score") or c.get("search_score") or 0, 4)
 
+    requested_sources = list(sources or [])
     parts = []
     sources = []
     seen_pages: set = set()
@@ -169,7 +182,7 @@ def retrieve_context(query: str, top_k: int = 15,
         page = r["metadata"].get("page", "?")
         source = r["metadata"].get("source", "")
         parts.append(f"[Página {page} | {source}]\n{r['text']}")
-        if page not in seen_pages:
+        if (source, page) not in seen_pages:
             sources.append({
                 "page": page,
                 "source": source,
@@ -179,7 +192,7 @@ def retrieve_context(query: str, top_k: int = 15,
                 "rerank_score": r.get("rerank_score", 0),
                 "preview": r["text"][:130],
             })
-            seen_pages.add(page)
+            seen_pages.add((source, page))
 
     stats = {
         "num_candidates": top_k * 15,        # $vectorSearch numCandidates
@@ -192,6 +205,7 @@ def retrieve_context(query: str, top_k: int = 15,
         "rerank_model": "rerank-2",
         "embed_dim": len(embedding),
         "access_levels": levels,
+        "sources": requested_sources,
         "hybrid": True,
     }
 

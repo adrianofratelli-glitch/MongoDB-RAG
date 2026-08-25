@@ -1,8 +1,20 @@
 import axios from 'axios'
 
-export async function getConfig() {
-  const { data } = await axios.get('/api/config')
-  return data
+/**
+ * O backend leva alguns segundos para subir (imports pesados), e o launcher abre
+ * o browser assim que a porta responde. Sem retry, a primeira carga cai na casca
+ * offline e só um reload manual conserta.
+ */
+export async function getConfig({ retries = 4, delayMs = 800 } = {}) {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      const { data } = await axios.get('/api/config', { timeout: 5000 })
+      return data
+    } catch (err) {
+      if (attempt >= retries) throw err
+      await new Promise((resolve) => setTimeout(resolve, delayMs * 2 ** attempt))
+    }
+  }
 }
 
 export async function getStatus(force = false) {
@@ -15,11 +27,36 @@ export async function getHistory(threadId) {
   return data.messages || []
 }
 
+export async function getDocuments() {
+  const { data } = await axios.get('/api/documents')
+  return data
+}
+
+/** Upload a document; ingestion runs server-side as a job (poll getJob). */
+export async function uploadDocument({ file, nivelAcesso = 'publico', reset = false }) {
+  const form = new FormData()
+  form.append('file', file)
+  form.append('nivel_acesso', nivelAcesso)
+  form.append('reset', String(reset))
+  const { data } = await axios.post('/api/documents', form)
+  return data
+}
+
+export async function getJob(jobId) {
+  const { data } = await axios.get(`/api/documents/jobs/${encodeURIComponent(jobId)}`)
+  return data
+}
+
+export async function deleteDocument(source) {
+  const { data } = await axios.delete(`/api/documents/${encodeURIComponent(source)}`)
+  return data
+}
+
 /**
  * Stream the chat over SSE (fetch + ReadableStream).
  * handlers: { onMeta(evt), onToken(delta), onDone(), onError(msg) }
  */
-export async function streamChat({ question, messages, threadId, accessLevel }, handlers) {
+export async function streamChat({ question, messages, threadId, accessLevel, sources }, handlers) {
   const { onMeta, onToken, onDone, onError } = handlers
   let res
   try {
@@ -33,6 +70,8 @@ export async function streamChat({ question, messages, threadId, accessLevel }, 
         // Default-deny: restricted access must be an explicit UI choice. In a
         // production deployment this value must come from authenticated claims.
         access_level: accessLevel || 'publico',
+        // Empty means "search every indexed document".
+        sources: sources || [],
       }),
     })
   } catch {

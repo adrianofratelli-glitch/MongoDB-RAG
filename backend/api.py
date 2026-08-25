@@ -22,7 +22,7 @@ from uuid import uuid4
 from uuid import UUID
 from typing import Literal
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel, Field, model_validator
@@ -43,6 +43,7 @@ from config import (
     SYSTEM_PROMPT_EXTRA,
 )
 from agent import retrieve_context, MODEL
+from backend import documents
 from db import get_client
 
 load_dotenv()
@@ -78,7 +79,7 @@ _allowed_origins = [
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_allowed_origins,
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "DELETE"],
     allow_headers=["Content-Type"],
 )
 
@@ -226,36 +227,44 @@ SYSTEM_PROMPT = SYSTEM_PROMPT_STATIC + "\n\nCONTEXTO:\n{context}"
 # on re-ingestion), pushes the block well past the minimum, and doubles as a
 # map that helps the model cite the right pages.
 _outline_lock = threading.Lock()
-_outline_cache = {"ts": 0.0, "text": ""}
+# key: (corpus_version, selected sources tuple) -> {"ts", "text"}
+_outline_cache: dict[tuple, dict] = {}
 _OUTLINE_TTL_S = 3600
+_OUTLINE_CACHE_MAX = 16
 
 
-def _get_document_outline() -> str:
+def _get_document_outline(sources: list | None = None) -> str:
+    key = (documents.corpus_version, tuple(sorted(sources or [])))
     with _outline_lock:
+        entry = _outline_cache.get(key)
         now = time.time()
-        if now - _outline_cache["ts"] < _OUTLINE_TTL_S and _outline_cache["text"]:
-            return _outline_cache["text"]
+        if entry and now - entry["ts"] < _OUTLINE_TTL_S and entry["text"]:
+            return entry["text"]
         try:
+            match = [{"$match": {"metadata.source": {"$in": sources}}}] if sources else []
             rows = get_client()[DB_NAME]["documents"].aggregate([
+                *match,
                 {"$sort": {"metadata.page": 1, "metadata.chunk_id": 1}},
                 {"$group": {
-                    "_id": "$metadata.page",
-                    "source": {"$first": "$metadata.source"},
+                    "_id": {"source": "$metadata.source", "page": "$metadata.page"},
                     "preview": {"$first": "$text"},
                 }},
-                {"$sort": {"_id": 1}},
+                {"$sort": {"_id.source": 1, "_id.page": 1}},
                 {"$limit": 200},
             ])
             lines = [
-                f"p.{r['_id']}: {' '.join(r['preview'].split())[:160]}"
+                f"{r['_id']['source']} p.{r['_id']['page']}: {' '.join(r['preview'].split())[:160]}"
                 for r in rows
             ]
-            text = "SUMÁRIO DO DOCUMENTO (página: início do conteúdo):\n" + "\n".join(lines) if lines else ""
+            text = "SUMÁRIO DOS DOCUMENTOS (documento, página: início do conteúdo):\n" + "\n".join(lines) if lines else ""
             text = text[:MAX_OUTLINE_CHARS]
         except Exception:
             logger.exception("document outline build failed — caching disabled this turn")
             text = ""
-        _outline_cache.update(ts=now, text=text)
+        # Drop stale corpus versions instead of growing without bound.
+        if len(_outline_cache) >= _OUTLINE_CACHE_MAX:
+            _outline_cache.clear()
+        _outline_cache[key] = {"ts": now, "text": text}
         return text
 
 
@@ -335,6 +344,10 @@ def api_config():
         "embed_dim": EMBED_DIM,
         "rerank_model": RERANK_MODEL,
         "index": VECTOR_INDEX,
+        "upload_enabled": True,
+        "max_upload_mb": documents.MAX_UPLOAD_BYTES // (1024 * 1024),
+        "upload_ttl_hours": documents.UPLOAD_TTL_HOURS,
+        "supported_formats": sorted(documents.SUPPORTED_FORMATS),
     }
 
 
@@ -354,6 +367,9 @@ class ChatBody(BaseModel):
     messages: list[ChatMessage] = Field(default_factory=list, max_length=MAX_HISTORY_MESSAGES)
     thread_id: UUID | None = None
     access_level: Literal["publico", "restrito"] = "publico"
+    # Empty/absent means "every indexed document"; otherwise retrieval is scoped
+    # to these metadata.source values (the documents picked in the UI).
+    sources: list[str] = Field(default_factory=list, max_length=50)
 
     @model_validator(mode="after")
     def bound_history_size(self):
@@ -366,6 +382,70 @@ class ChatBody(BaseModel):
 def api_history(thread_id: UUID):
     """Resume a conversation persisted in MongoDB."""
     return {"thread_id": str(thread_id), "messages": _load_conversation(str(thread_id))}
+
+
+# Document library: list, upload (queued ingestion), poll a job, delete
+@app.get("/api/documents")
+def api_documents():
+    """Every document indexed in the tenant DB + the currently known jobs."""
+    try:
+        docs = documents.list_documents()
+    except Exception:
+        logger.exception("document listing failed")
+        raise HTTPException(status_code=503, detail="não foi possível listar os documentos")
+    return {"documents": docs, "jobs": documents.list_jobs()}
+
+
+@app.post("/api/documents")
+async def api_upload_document(
+    file: UploadFile = File(...),
+    nivel_acesso: Literal["publico", "restrito"] = Form("publico"),
+    reset: bool = Form(False),
+):
+    """Accept a document and queue it for the same pipeline the CLI runs.
+
+    Returns immediately with a job; the UI polls /api/documents/jobs/{job_id}.
+    Embedding is rate-limited upstream, so a large file takes minutes.
+    """
+    content = await file.read()
+    try:
+        job = documents.start_ingestion(
+            file.filename or "", content, nivel_acesso=nivel_acesso, reset=reset
+        )
+    except documents.UploadError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    observability.metrics.bump("documents_uploaded", 1)
+    return job
+
+
+@app.get("/api/documents/jobs/{job_id}")
+def api_document_job(job_id: str):
+    job = documents.get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="job não encontrado")
+    return job
+
+
+@app.delete("/api/documents/{source}")
+def api_delete_document(source: str):
+    """Remove every chunk of one uploaded document — demo cleanup.
+
+    The tenant's reference corpus is refused: it is what the whole demo reads
+    from, and re-ingesting it costs an hour of rate-limited embedding calls.
+    """
+    try:
+        deleted = documents.delete_document(source)
+    except documents.ProtectedDocumentError:
+        raise HTTPException(
+            status_code=403,
+            detail="documento base do tenant — protegido contra remoção",
+        )
+    except Exception:
+        logger.exception("document deletion failed source=%s", source)
+        raise HTTPException(status_code=503, detail="não foi possível remover o documento")
+    if deleted == 0:
+        raise HTTPException(status_code=404, detail="documento não encontrado")
+    return {"source": source, "deleted_chunks": deleted}
 
 
 @app.post("/api/chat")
@@ -410,7 +490,9 @@ def api_chat(body: ChatBody):
                 return
             t0 = time.perf_counter()
             context, sources, stats = retrieve_context(
-                question, access_levels=_levels_for(body.access_level)
+                question,
+                access_levels=_levels_for(body.access_level),
+                sources=body.sources or None,
             )
             elapsed_ms = int((time.perf_counter() - t0) * 1000)
             yield _sse(
@@ -424,10 +506,13 @@ def api_chat(body: ChatBody):
             )
 
             llm = _get_llm()
+            # With a document picked in the UI, name it in the prompt instead of
+            # the tenant's default title — the uploaded file is what's retrievable.
+            scope_title = ", ".join(body.sources) if body.sources else DOCUMENT_TITLE
             static_instructions = SYSTEM_PROMPT_STATIC.format(
-                document_title=DOCUMENT_TITLE, client_name=CLIENT_NAME, extra=SYSTEM_PROMPT_EXTRA,
+                document_title=scope_title, client_name=CLIENT_NAME, extra=SYSTEM_PROMPT_EXTRA,
             )
-            outline = _get_document_outline()
+            outline = _get_document_outline(body.sources or None)
             if outline:
                 static_instructions = f"{static_instructions}\n\n{outline}"
             # Build the messages directly (no ChatPromptTemplate): the PDF context

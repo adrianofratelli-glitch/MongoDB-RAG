@@ -63,6 +63,8 @@ Toda configuração vem de env, lida por um `config.py`:
 
 Perguntas iniciais e follow-ups vêm de um `client_config.json` (gitignored, com um `.example` versionado), com defaults pt-BR.
 
+Dentro de um tenant cabem vários documentos, separados por `metadata.source` na mesma coleção. Um documento novo entra por upload na própria tela — mesma esteira de chunking/embedding do CLI — e a UI escolhe quais documentos a recuperação enxerga. O upload existe pra que a PoV sirva a **qualquer** cenário: o cliente manda o documento dele na reunião e a demo continua em cima do material dele.
+
 ## Controle de acesso
 
 Conceito **só do PoC**: `nivel_acesso` é `"publico"` ou `"restrito"`, escolhido no lado do cliente na UI, e com default `publico` nos dois lados (front e back) — o caminho mais permissivo nunca pode ser o default implícito.
@@ -83,7 +85,7 @@ Três lugares onde o gasto cresce sem ninguém perceber, e o que fazer em cada u
 
 E tem o **sumário do documento (TOC) no bloco cacheado do system**. Esse detalhe vale explicar: a Anthropic só efetiva o prompt cache acima de ~1024 tokens, e o system prompt do tenant sozinho não chega lá — o `cache_control` seria um no-op silencioso. O sumário, que é estável entre turnos, empurra o bloco acima do mínimo e passa a valer cache de verdade. Ele é montado uma vez, cacheado em memória por uma hora, e limitado por caracteres.
 
-Os índices de TTL nas conversas e no histórico persistido também estão aí pra limitar crescimento — dado de demo que fica pra sempre vira custo pra sempre.
+Os índices de TTL nas conversas e no histórico persistido também estão aí pra limitar crescimento — dado de demo que fica pra sempre vira custo pra sempre. Vale pros documentos também: o que sobe pela tela numa apresentação expira em 24h (`UPLOAD_TTL_HOURS`), senão cada reunião deixa um corpus morto no cluster. O corpus base, ingerido pela CLI, não expira.
 
 ## Exposição da API
 
@@ -91,12 +93,14 @@ Os índices de TTL nas conversas e no histórico persistido também estão aí p
 - `/api/chat` valida que a pergunta é não-vazia e menor que 4000 caracteres **antes de gastar uma chamada de LLM com ela**.
 - `/api/health` responde **503** quando o Atlas não responde, não 200 com um campo dizendo que está ruim.
 - `thread_id` é validado como UUID no path — não como string livre.
+- `POST /api/documents` valida extensão, tamanho (`MAX_UPLOAD_MB`, 25 por padrão) e normaliza o nome do arquivo antes de gravar em `data/uploads/` — nada de path traversal e nada de aceitar formato que o loader não abre.
 
 ### O que ainda não tem, e precisa estar escrito
 
 - **Não há autenticação em nenhum endpoint.**
 - `access_level` é confiado do corpo da requisição.
 - `/api/history/{thread_id}` devolve qualquer conversa pra quem souber ou adivinhar o `thread_id` (um UUIDv4 gerado no cliente).
+- **O upload e a remoção de documentos são abertos**: qualquer um que alcance a API indexa ou apaga conteúdo do tenant. Aceitável numa demo em `localhost`, inaceitável exposto.
 
 **Autenticação real antes de qualquer deployment que não seja demo.** Não deixa isso implícito no README — enuncia.
 
@@ -108,6 +112,7 @@ Layout Python plano na raiz, sem pacote aninhado:
 |---|---|
 | `agent.py` | pipeline de recuperação (usado pela API e pelo grafo) + `build_graph()` |
 | `backend/api.py` | app FastAPI, streaming SSE, montagem manual de mensagens |
+| `backend/documents.py` | biblioteca de documentos: upload validado, jobs de ingestão, remoção |
 | `ingest.py` | loader multi-formato, chunking, embedding em lotes |
 | `db.py` | `MongoClient` singleton |
 | `config.py` | configuração de tenant, toda por env |
