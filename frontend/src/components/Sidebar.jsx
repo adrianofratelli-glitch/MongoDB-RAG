@@ -88,6 +88,7 @@ export default function Sidebar({ config, status, threadId, totalQueries, chunks
             <button
               key={val}
               onClick={() => onAccessLevel?.(val)}
+              aria-pressed={active}
               style={{
                 flex: 1, cursor: 'pointer', padding: '7px 0', borderRadius: 7,
                 fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700,

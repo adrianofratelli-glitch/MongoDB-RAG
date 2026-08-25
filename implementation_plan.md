@@ -8,8 +8,8 @@ O critério que define se a arquitetura ficou certa: **adicionar um tenant novo 
 
 | Arquivo | O que responde |
 |---|---|
-| [`docs/prompts/01-arquitetura.md`](docs/prompts/01-arquitetura.md) | o pipeline de 4 estágios e por que não é só `$vectorSearch`, multi-tenancy por env, controle de acesso, custo e limites, exposição da API, ordem de trabalho |
-| [`docs/prompts/02-mongodb.md`](docs/prompts/02-mongodb.md) | coleções, os dois índices, ingestão e chunking, os pipelines vetorial e lexical, RRF, rerank, o `stats` do funil |
-| [`docs/prompts/03-interface-fluxos.md`](docs/prompts/03-interface-fluxos.md) | componentes, `EngineStrip`, o SSE e a ordem dos eventos, roteiro de demo, nota de capturas |
+| [`docs/briefing/01-arquitetura.md`](docs/briefing/01-arquitetura.md) | o pipeline de 4 estágios e por que não é só `$vectorSearch`, multi-tenancy por env, controle de acesso, custo e limites, exposição da API, ordem de trabalho |
+| [`docs/briefing/02-mongodb.md`](docs/briefing/02-mongodb.md) | coleções, os dois índices, ingestão e chunking, os pipelines vetorial e lexical, RRF, rerank, o `stats` do funil |
+| [`docs/briefing/03-interface-fluxos.md`](docs/briefing/03-interface-fluxos.md) | componentes, `EngineStrip`, o SSE e a ordem dos eventos, roteiro de demo, nota de capturas |
 
 Se for ler só um: o **02**, porque a qualidade da recuperação é o produto aqui. Fazer RAG qualquer um faz em uma tarde.

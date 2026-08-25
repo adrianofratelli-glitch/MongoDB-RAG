@@ -1,14 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import Banner from '@leafygreen-ui/banner'
-import { getConfig, getStatus, getHistory, streamChat } from './api'
-import Sidebar from './components/Sidebar'
+import { getConfig, getStatus, streamChat } from './api'
 import TopBar from './components/TopBar'
-import KpiRow from './components/KpiRow'
 import Welcome from './components/Welcome'
 import OfflineHero from './components/OfflineHero'
 import ChatMessage from './components/ChatMessage'
 import ChatInput from './components/ChatInput'
-import Footer from './components/Footer'
 import { C } from './theme'
 
 const uuid = () => {
@@ -36,7 +33,6 @@ export default function App() {
   const [messages, setMessages] = useState([])
   const [streaming, setStreaming] = useState(false)
   const [threadId, setThreadId] = useState(uuid())
-  const [totalQueries, setTotalQueries] = useState(0)
   const [error, setError] = useState(null)
   const [reconnecting, setReconnecting] = useState(false)
   const [accessLevel, setAccessLevel] = useState('publico') // produção deriva isso de claims autenticadas
@@ -64,14 +60,11 @@ export default function App() {
     endRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const chunksRead = messages.reduce((a, m) => a + (m.sources?.length || 0), 0)
-
   const send = async (question) => {
     if (streaming) return
     setError(null)
     const history = messages.map(({ role, content }) => ({ role, content }))
     setMessages((prev) => [...prev, { role: 'user', content: question }, { role: 'assistant', content: '' }])
-    setTotalQueries((n) => n + 1)
     setStreaming(true)
 
     await streamChat(
@@ -99,7 +92,6 @@ export default function App() {
         onError: (msg) => {
           setStreaming(false)
           setMessages((prev) => prev.slice(0, -2)) // undo the user + placeholder messages
-          setTotalQueries((n) => Math.max(0, n - 1))
           setError(msg)
           refreshStatus(true)
         },
@@ -115,22 +107,8 @@ export default function App() {
   const newChat = () => {
     setMessages([])
     setThreadId(uuid())
-    setTotalQueries(0)
     setError(null)
   }
-  const resume = async (id) => {
-    setError(null)
-    try {
-      const hist = await getHistory(id)
-      setThreadId(id)
-      setMessages(hist)
-      setTotalQueries(hist.filter((m) => m.role === 'user').length)
-      if (hist.length === 0) setError('Nenhuma conversa encontrada para esse Thread ID.')
-    } catch {
-      setError('Não foi possível retomar a conversa.')
-    }
-  }
-
   if (!config) {
     return <div style={{ padding: 40, color: C.sub }}>Carregando…</div>
   }
@@ -139,22 +117,10 @@ export default function App() {
   const showFollowups = !streaming && last?.role === 'assistant' && last.followups?.length > 0
 
   return (
-    <div className="app-shell">
-      <Sidebar
-        config={config}
-        status={status}
-        threadId={threadId}
-        totalQueries={totalQueries}
-        chunksRead={chunksRead}
-        messages={messages}
-        onResume={resume}
-        onNewChat={newChat}
-        accessLevel={accessLevel}
-        onAccessLevel={setAccessLevel}
-      />
-      <main className="main">
-        <TopBar config={config} online={status.online} onRefresh={() => refreshStatus(true)} />
-        <KpiRow totalQueries={totalQueries} chunksRead={chunksRead} documentTitle={config.document_title} />
+    <div className="app-shell" data-pov-shell>
+      <a className="pov-skip-link" href="#conteudo-principal">Pular para o conteúdo</a>
+      <main id="conteudo-principal" tabIndex={-1} className="main">
+        <TopBar config={config} online={status.online} onRefresh={() => refreshStatus(true)} onNewChat={newChat} accessLevel={accessLevel} onAccessLevel={setAccessLevel} />
 
         {error && (
           <Banner darkMode variant="danger" dismissible onClose={() => setError(null)} style={{ marginBottom: 14 }}>
@@ -191,8 +157,6 @@ export default function App() {
             <ChatInput placeholder={`Pergunte sobre ${config.document_title}…`} disabled={streaming} onSend={send} />
           </>
         )}
-
-        <Footer />
       </main>
     </div>
   )

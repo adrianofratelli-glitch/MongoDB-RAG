@@ -1,6 +1,6 @@
 # Assistente RAG Multi-tenant — MongoDB: coleções, índices e recuperação
 
-> Segundo dos três prompts. O que existe no Atlas, como é indexado, como é ingerido e exatamente quais pipelines rodam a cada pergunta.
+> Segunda parte do briefing. O que existe no Atlas, como é indexado, como é ingerido e exatamente quais pipelines rodam a cada pergunta.
 
 ---
 

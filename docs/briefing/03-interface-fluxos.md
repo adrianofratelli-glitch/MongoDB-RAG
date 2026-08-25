@@ -1,8 +1,15 @@
 # Assistente RAG Multi-tenant — interface, fluxos e roteiro
 
-> Terceiro dos três prompts. A tela, o streaming, e o roteiro que fecha a conversa comercial.
+> Terceira parte do briefing. A tela, o streaming, e o roteiro que fecha a conversa comercial.
 
 ---
+## Estado atual — modo palco
+
+É uma única conversa, sem sidebar. Escopo público/restrito, conexão e nova
+conversa ficam na barra superior; a área central mostra pergunta, streaming,
+fontes e evidência de recuperação. Histórico e métricas globais não ocupam o
+primeiro viewport.
+
 ## Contrato visual do portfólio (v2)
 
 Esta UI participa da assinatura MongoDB Dark das PoVs. O arquivo
@@ -45,16 +52,13 @@ Sem router. Uma tela só, porque a demo é uma conversa.
 
 | Componente | Papel |
 |---|---|
-| `Sidebar` | seletor de `access_level`, atalhos e contexto do tenant. É o mais importante da demo |
 | `EngineStrip` | **a peça central.** Mostra o que cada motor contribuiu: lexical, vetorial, rerank |
 | `Sources` | os chunks que fundamentaram a resposta, com badge de qual motor os trouxe e os scores `vetorial → rerank` |
 | `ChatMessage` | renderiza markdown; a resposta chega token a token |
 | `ChatInput` | entrada, com o envio bloqueado enquanto um turno está em andamento |
-| `KpiRow` | consultas feitas, chunks lidos, documento ativo |
-| `TopBar` | status do banco, com botão de reconectar |
+| `TopBar` | `access_level`, status do banco, nova conversa e reconexão |
 | `OfflineHero` | tela quando o Atlas não responde, com o nome do banco e o botão de reconectar |
 | `Welcome` | perguntas prontas pra clicar. **Ninguém digita durante apresentação** |
-| `Footer` | procedência e nota de escopo |
 
 O `EngineStrip` existe por um motivo específico: **"busca híbrida" é fácil de afirmar e difícil de provar.** Com ele na tela, uma pergunta com número de norma mostra a lexical pesando, e uma pergunta conceitual mostra a vetorial pesando. O argumento se demonstra sozinho, sem eu narrar.
 
@@ -93,7 +97,11 @@ O passo 7 é o fecho da conversa comercial. É ele que transforma "vocês fizera
 
 ## Nota sobre capturas de tela
 
-O repositório é deliberadamente agnóstico de tenant, mas o app rodando mostra a organização real na sidebar, no pill do topo, no parágrafo de abertura, no nome do database e dentro da própria resposta e das passagens citadas. **Substitui esses nomes por neutros no DOM imediatamente antes de cada captura**, e mantém a nota embaixo das imagens dizendo que os nomes foram trocados. Cortar depois não resolve: o nome aparece em metade dos painéis.
+O repositório é deliberadamente agnóstico de tenant, mas o app rodando pode
+mostrar a organização real no topo, no nome do database, na resposta e nas
+passagens citadas. **Substitui esses nomes por neutros no DOM imediatamente antes
+de cada captura**, e mantém a nota embaixo das imagens dizendo que os nomes foram
+trocados. Cortar depois não resolve.
 
 ## Antes de apresentar
 

@@ -35,3 +35,8 @@ client_config.json
 # graphify knowledge-graph output (local tooling artifact, not app code)
 graphify-out/
 CLAUDE.md 
+
+# Instruções locais de ferramenta — não versionar
+CLAUDE.md
+AGENTS.md
+.claude/
