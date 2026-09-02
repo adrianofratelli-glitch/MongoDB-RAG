@@ -49,6 +49,9 @@ def setup() -> None:
             {"type": "filter", "path": "metadata.nivel_acesso"},
             # Lets the UI restrict retrieval to the documents picked there.
             {"type": "filter", "path": "metadata.source"},
+            # Defense in depth: redundant under one-DB-per-tenant, but a real
+            # guarantee if the topology ever becomes a shared DB.
+            {"type": "filter", "path": "metadata.client_id"},
         ]
     }
     if "vector_index" not in have:
@@ -64,6 +67,7 @@ def setup() -> None:
         "metadata": {"type": "document", "fields": {
             "nivel_acesso": {"type": "token"},
             "source": {"type": "token"},
+            "client_id": {"type": "token"},
         }},
     }}}
     if "text_index" not in have:

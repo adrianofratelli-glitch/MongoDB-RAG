@@ -84,9 +84,19 @@ def validate_size(size: int) -> None:
         )
 
 
-def list_documents() -> list[dict]:
-    """Every indexed document in the tenant DB, with its chunk count."""
-    rows = get_client()[DB_NAME]["documents"].aggregate([
+DOCUMENTS_LIST_LIMIT = 200
+
+
+def list_documents() -> dict:
+    """Every indexed document in the tenant DB, with its chunk count.
+
+    Returns {"documents": [...], "truncated": bool, "total": int}. Fetches one
+    row past the limit to detect truncation without a second `$count` pass;
+    `total` is exact (one extra $group is cheap relative to the aggregation
+    already run) so the UI can tell the user how many documents exist beyond
+    what's shown, not just that some were cut.
+    """
+    pipeline = [
         {"$group": {
             "_id": "$metadata.source",
             "chunks": {"$sum": 1},
@@ -95,10 +105,16 @@ def list_documents() -> list[dict]:
             "expires_at": {"$max": "$metadata.expires_at"},
             "nivel_acesso": {"$addToSet": "$metadata.nivel_acesso"},
         }},
-        {"$sort": {"_id": 1}},
-        {"$limit": 200},
-    ])
-    return [
+        {"$match": {"_id": {"$ne": None}}},
+        {"$facet": {
+            "page": [{"$sort": {"_id": 1}}, {"$limit": DOCUMENTS_LIST_LIMIT}],
+            "count": [{"$count": "n"}],
+        }},
+    ]
+    result = next(iter(get_client()[DB_NAME]["documents"].aggregate(pipeline)), {})
+    rows = result.get("page", [])
+    total = (result.get("count") or [{}])[0].get("n", len(rows))
+    documents_out = [
         {
             "source": r["_id"],
             "chunks": r["chunks"],
@@ -109,8 +125,21 @@ def list_documents() -> list[dict]:
             "workspace": "uploads" if r.get("expires_at") else "base",
         }
         for r in rows
-        if r["_id"]
     ]
+    return {
+        "documents": documents_out,
+        "truncated": total > len(documents_out),
+        "total": total,
+    }
+
+
+# key: (corpus_version, scope) -> {"ts", "value"}. Same corpus_version key the
+# outline cache in backend/api.py uses to invalidate on ingest/delete — a
+# `distinct` per chat turn was pure waste since the answer only changes when
+# the corpus does.
+_scope_cache_lock = threading.Lock()
+_scope_cache: dict[tuple, dict] = {}
+_SCOPE_CACHE_TTL_S = 3600
 
 
 def sources_for_scope(scope: str) -> list[str] | None:
@@ -119,15 +148,28 @@ def sources_for_scope(scope: str) -> list[str] | None:
     Both workspaces live in the same tenant DB and are told apart by the TTL
     stamp: the CLI-ingested reference corpus carries no `metadata.expires_at`,
     every UI upload carries one. `"all"` returns None — do not scope retrieval.
+    Cached by (corpus_version, scope) so a busy chat doesn't re-run `distinct`
+    on every turn.
     """
     if scope == "all":
         return None
+    key = (corpus_version, scope)
+    with _scope_cache_lock:
+        entry = _scope_cache.get(key)
+        now = time.time()
+        if entry and now - entry["ts"] < _SCOPE_CACHE_TTL_S:
+            return entry["value"]
     exists = scope == "uploads"
-    return sorted(
+    value = sorted(
         s for s in get_client()[DB_NAME]["documents"].distinct(
             "metadata.source", {"metadata.expires_at": {"$exists": exists}}
         ) if s
     )
+    with _scope_cache_lock:
+        if len(_scope_cache) >= 16:
+            _scope_cache.clear()
+        _scope_cache[key] = {"ts": now, "value": value}
+    return value
 
 
 def is_protected(source: str) -> bool:

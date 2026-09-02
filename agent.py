@@ -4,7 +4,7 @@ import threading
 from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 import voyageai
-from config import DB_NAME
+from config import CLIENT_ID, DB_NAME
 from db import get_client
 from dotenv import load_dotenv
 
@@ -21,10 +21,15 @@ RRF_K = 60  # standard Reciprocal Rank Fusion constant
 _voyage = None
 
 
+VOYAGE_TIMEOUT_S = float(os.getenv("VOYAGE_TIMEOUT_S", "15"))
+
+
 def _get_voyage() -> voyageai.Client:
     global _voyage
     if _voyage is None:
-        _voyage = voyageai.Client(api_key=os.environ["VOYAGE_API_KEY"])
+        _voyage = voyageai.Client(
+            api_key=os.environ["VOYAGE_API_KEY"], timeout=VOYAGE_TIMEOUT_S
+        )
     return _voyage
 
 
@@ -58,13 +63,15 @@ def _vector_pipeline(embedding, top_k, access_levels, sources=None):
         "numCandidates": top_k * 15,
         "limit": top_k,
     }
-    conditions = []
+    # Defense in depth: the tenant already gets its own database, so this is a
+    # no-op filter today (one client_id per DB). It becomes a real guarantee
+    # instead of a dead field if the topology ever changes to a shared DB.
+    conditions = [{"metadata.client_id": CLIENT_ID}]
     if access_levels:
         conditions.append({"metadata.nivel_acesso": {"$in": access_levels}})
     if sources:
         conditions.append({"metadata.source": {"$in": sources}})
-    if conditions:
-        vs["filter"] = conditions[0] if len(conditions) == 1 else {"$and": conditions}
+    vs["filter"] = conditions[0] if len(conditions) == 1 else {"$and": conditions}
     return [
         {"$vectorSearch": vs},
         {"$project": {"text": 1, "metadata": 1,
@@ -74,7 +81,9 @@ def _vector_pipeline(embedding, top_k, access_levels, sources=None):
 
 def _lexical_pipeline(query, top_k, access_levels, sources=None):
     must = [{"text": {"query": query, "path": "text"}}]
-    flt = []
+    # Defense in depth: see _vector_pipeline — no-op today (one client_id per
+    # DB), a real guarantee if the topology ever becomes a shared DB.
+    flt = [{"in": {"path": "metadata.client_id", "value": [CLIENT_ID]}}]
     if access_levels:
         flt.append({"in": {"path": "metadata.nivel_acesso", "value": access_levels}})
     if sources:
@@ -113,12 +122,22 @@ def retrieve_context(query: str, top_k: int = 15,
     voyage = _get_voyage()
     collection = get_client()[DB_NAME]["documents"]
 
-    embedding = _embed_query(voyage, query)
-    vector_pipeline = _vector_pipeline(embedding, top_k, levels, sources)
+    # A slow/unreachable VoyageAI must not take the whole chat turn down with
+    # it: fall back to lexical-only retrieval (same degradation already used
+    # when the vector index itself errors below) instead of letting a timeout
+    # or network error propagate out of retrieve_context.
+    try:
+        embedding = _embed_query(voyage, query)
+    except Exception:
+        logger.exception("query embedding failed (timeout or API error) — falling back to lexical-only")
+        embedding = None
+    vector_pipeline = _vector_pipeline(embedding, top_k, levels, sources) if embedding else None
     lexical_pipeline = _lexical_pipeline(query, top_k, levels, sources)
 
     # 1) Retrieve from both modalities in parallel (two independent aggregations)
     def _run_vector():
+        if vector_pipeline is None:
+            return []
         try:
             return list(collection.aggregate(vector_pipeline))
         except Exception:
@@ -210,19 +229,20 @@ def retrieve_context(query: str, top_k: int = 15,
         "index": "vector_index + text_index",
         "embed_model": "voyage-3",
         "rerank_model": "rerank-2",
-        "embed_dim": len(embedding),
+        "embed_dim": len(embedding) if embedding else 0,
         "access_levels": levels,
         "sources": requested_sources,
         "hybrid": True,
+        "embedding_degraded": embedding is None,
         "query_details": [
-            {
+            *([{
                 "operation": "aggregate / $vectorSearch",
                 "namespace": f"{DB_NAME}.documents",
                 "pipeline": [
                     {"$vectorSearch": {**vector_pipeline[0]["$vectorSearch"], "queryVector": f"<{len(embedding)} floats omitidos>"}},
                     *vector_pipeline[1:],
                 ],
-            },
+            }] if vector_pipeline else []),
             {
                 "operation": "aggregate / $search",
                 "namespace": f"{DB_NAME}.documents",

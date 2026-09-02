@@ -33,6 +33,7 @@ from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 
 import observability
 from config import (
+    CLIENT_ID,
     CLIENT_NAME,
     DOCUMENT_TITLE,
     DOCUMENT_DESCRIPTION,
@@ -44,7 +45,7 @@ from config import (
 )
 from agent import retrieve_context, MODEL
 from backend import documents
-from db import get_client
+from db import get_client, verify_tenant_identity
 
 load_dotenv()
 observability.setup_logging()
@@ -67,6 +68,14 @@ def _get_llm() -> ChatAnthropic:
     )
 
 app = FastAPI(title="RAG · MongoDB Atlas Vector Search (POC)")
+
+
+@app.on_event("startup")
+def _verify_tenant_on_boot():
+    """Abort boot if MONGO_URI/DB_NAME point at a database stamped for a
+    different tenant — catches a copy-pasted .env / swapped connection string
+    before the app starts serving or ingesting against the wrong tenant."""
+    verify_tenant_identity(DB_NAME, CLIENT_ID)
 
 # CORS: restricted to known origins by default (the Vite dev server proxies
 # /api -> :8180, so it never needs a cross-origin allowance in dev). Set
@@ -227,23 +236,30 @@ SYSTEM_PROMPT = SYSTEM_PROMPT_STATIC + "\n\nCONTEXTO:\n{context}"
 # on re-ingestion), pushes the block well past the minimum, and doubles as a
 # map that helps the model cite the right pages.
 _outline_lock = threading.Lock()
-# key: (corpus_version, selected sources tuple) -> {"ts", "text"}
+# key: (corpus_version, access_levels tuple, selected sources tuple) -> {"ts", "text"}
+# access_levels is part of the key (not just corpus_version): the outline is
+# built from a $match over the whole `documents` collection, and without the
+# ACL filter it would leak a preview of `restrito` pages to `publico` callers
+# — including cross-contamination through the cache if the key didn't vary by
+# access level too.
 _outline_cache: dict[tuple, dict] = {}
 _OUTLINE_TTL_S = 3600
 _OUTLINE_CACHE_MAX = 16
 
 
-def _get_document_outline(sources: list | None = None) -> str:
-    key = (documents.corpus_version, tuple(sorted(sources or [])))
+def _get_document_outline(access_levels: list, sources: list | None = None) -> str:
+    key = (documents.corpus_version, tuple(sorted(access_levels)), tuple(sorted(sources or [])))
     with _outline_lock:
         entry = _outline_cache.get(key)
         now = time.time()
         if entry and now - entry["ts"] < _OUTLINE_TTL_S and entry["text"]:
             return entry["text"]
         try:
-            match = [{"$match": {"metadata.source": {"$in": sources}}}] if sources else []
+            match_filter = {"metadata.nivel_acesso": {"$in": access_levels}}
+            if sources:
+                match_filter = {"$and": [match_filter, {"metadata.source": {"$in": sources}}]}
             rows = get_client()[DB_NAME]["documents"].aggregate([
-                *match,
+                {"$match": match_filter},
                 {"$sort": {"metadata.page": 1, "metadata.chunk_id": 1}},
                 {"$group": {
                     "_id": {"source": "$metadata.source", "page": "$metadata.page"},
@@ -391,13 +407,22 @@ def api_history(thread_id: UUID):
 # Document library: list, upload (queued ingestion), poll a job, delete
 @app.get("/api/documents")
 def api_documents():
-    """Every document indexed in the tenant DB + the currently known jobs."""
+    """Every document indexed in the tenant DB + the currently known jobs.
+
+    `truncated`/`total` let the UI warn when the tenant has more documents
+    than the listing shows (see documents.DOCUMENTS_LIST_LIMIT).
+    """
     try:
-        docs = documents.list_documents()
+        listing = documents.list_documents()
     except Exception:
         logger.exception("document listing failed")
         raise HTTPException(status_code=503, detail="não foi possível listar os documentos")
-    return {"documents": docs, "jobs": documents.list_jobs()}
+    return {
+        "documents": listing["documents"],
+        "truncated": listing["truncated"],
+        "total": listing["total"],
+        "jobs": documents.list_jobs(),
+    }
 
 
 @app.post("/api/documents")
@@ -541,7 +566,7 @@ def api_chat(body: ChatBody):
             static_instructions = SYSTEM_PROMPT_STATIC.format(
                 document_title=scope_title, client_name=CLIENT_NAME, extra=SYSTEM_PROMPT_EXTRA,
             )
-            outline = _get_document_outline(effective_sources)
+            outline = _get_document_outline(_levels_for(body.access_level), effective_sources)
             if outline:
                 static_instructions = f"{static_instructions}\n\n{outline}"
             # Build the messages directly (no ChatPromptTemplate): the PDF context

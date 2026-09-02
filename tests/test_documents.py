@@ -9,6 +9,7 @@ sys.path.insert(0, ROOT)
 os.environ.setdefault("MONGO_URI", "mongodb://localhost/test")
 os.environ.setdefault("VOYAGE_API_KEY", "test")
 os.environ.setdefault("ANTHROPIC_API_KEY", "test")
+os.environ.setdefault("CLIENT_ID", "test-tenant")
 
 from backend.documents import (
     MAX_SOURCE_LENGTH,

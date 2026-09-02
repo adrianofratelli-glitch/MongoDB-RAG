@@ -5,7 +5,24 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-CLIENT_ID = os.getenv("CLIENT_ID", "default")
+# CLIENT_ID names the tenant's database (rag_<CLIENT_ID>) and is stamped on
+# every chunk (metadata.client_id, see ingest.py) and filtered on every query
+# (see agent.py). Copying a .env from another tenant, or simply forgetting to
+# set it, must not silently boot against some other database — so there is no
+# default. The only way to run without it is to opt in explicitly via
+# ALLOW_DEFAULT_TENANT=true (local/dev convenience only).
+CLIENT_ID = os.getenv("CLIENT_ID")
+if not CLIENT_ID:
+    if os.getenv("ALLOW_DEFAULT_TENANT", "").lower() in ("1", "true", "yes"):
+        CLIENT_ID = "default"
+    else:
+        raise RuntimeError(
+            "CLIENT_ID não está configurado. Defina CLIENT_ID no .env deste tenant "
+            "(nomeia o banco rag_<CLIENT_ID> e é gravado/filtrado em todo chunk). "
+            "Para rodar em modo dev sem tenant definido, defina também "
+            "ALLOW_DEFAULT_TENANT=true."
+        )
+
 CLIENT_NAME = os.getenv("CLIENT_NAME", "Assistente")
 DOCUMENT_TITLE = os.getenv("DOCUMENT_TITLE", "Base de Conhecimento")
 DOCUMENT_DESCRIPTION = os.getenv("DOCUMENT_DESCRIPTION", "Converse com seus documentos corporativos.")
