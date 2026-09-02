@@ -370,6 +370,10 @@ class ChatBody(BaseModel):
     # Empty/absent means "every indexed document"; otherwise retrieval is scoped
     # to these metadata.source values (the documents picked in the UI).
     sources: list[str] = Field(default_factory=list, max_length=50)
+    # Workspace tab the question came from. "base" = the tenant's reference
+    # corpus, "uploads" = content sent through the UI, "all" = no scoping.
+    # Resolved server-side so an empty `sources` can never leak the other tab.
+    scope: Literal["all", "base", "uploads"] = "all"
 
     @model_validator(mode="after")
     def bound_history_size(self):
@@ -460,6 +464,28 @@ def api_chat(body: ChatBody):
             status_code=422,
             detail=f"question exceeds {MAX_QUESTION_LENGTH} characters",
         )
+    try:
+        workspace_sources = documents.sources_for_scope(body.scope)
+    except Exception:
+        logger.exception("workspace scope resolution failed scope=%s", body.scope)
+        raise HTTPException(status_code=503, detail="não foi possível resolver o escopo do workspace")
+    if workspace_sources is None:
+        effective_sources = body.sources or None
+    else:
+        picked = [s for s in body.sources if s in workspace_sources]
+        effective_sources = picked or workspace_sources
+        if not effective_sources:
+            # Empty workspace: answering here would fall back to the whole
+            # tenant corpus, which is exactly the mixing the tabs prevent.
+            def empty_gen():
+                yield _sse({"type": "meta", "stats": {"mode": "empty_workspace"},
+                            "sources": [], "elapsed_ms": 0, "followups": []})
+                yield _sse({"type": "token", "delta":
+                            "Este espaço ainda não tem conteúdo indexado. "
+                            "Envie um documento na Base de conhecimento desta aba e pergunte de novo."})
+                yield _sse({"type": "done"})
+
+            return StreamingResponse(empty_gen(), media_type="text/event-stream")
     if _is_obviously_out_of_scope(question):
         reply = _scope_reply()
 
@@ -492,7 +518,7 @@ def api_chat(body: ChatBody):
             context, sources, stats = retrieve_context(
                 question,
                 access_levels=_levels_for(body.access_level),
-                sources=body.sources or None,
+                sources=effective_sources,
             )
             elapsed_ms = int((time.perf_counter() - t0) * 1000)
             yield _sse(
@@ -508,11 +534,14 @@ def api_chat(body: ChatBody):
             llm = _get_llm()
             # With a document picked in the UI, name it in the prompt instead of
             # the tenant's default title — the uploaded file is what's retrievable.
-            scope_title = ", ".join(body.sources) if body.sources else DOCUMENT_TITLE
+            # Naming every base chunk source would bloat the prompt; the tenant
+            # title already describes that corpus. Uploads get named explicitly.
+            named = effective_sources if (body.sources or body.scope == "uploads") else None
+            scope_title = ", ".join(named) if named else DOCUMENT_TITLE
             static_instructions = SYSTEM_PROMPT_STATIC.format(
                 document_title=scope_title, client_name=CLIENT_NAME, extra=SYSTEM_PROMPT_EXTRA,
             )
-            outline = _get_document_outline(body.sources or None)
+            outline = _get_document_outline(effective_sources)
             if outline:
                 static_instructions = f"{static_instructions}\n\n{outline}"
             # Build the messages directly (no ChatPromptTemplate): the PDF context

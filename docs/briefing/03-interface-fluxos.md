@@ -38,7 +38,7 @@ Regra: **a UI não decide nada de recuperação.** Ela mostra o que o backend j�
 |---|---|---|
 | Build | Vite, porta `5180` com `strictPort` | 5173 já está ocupada por outras PoVs nesta máquina; falhar alto é melhor que trocar de porta em silêncio |
 | UI kit | LeafyGreen | design system do MongoDB — a demo já parece produto Atlas, sem eu desenhar nada |
-| Estado | `useState` no `App.jsx` | são nove estados e um componente raiz. Não justifica biblioteca |
+| Estado | `useState` no `App.jsx` (casca) e no `WorkspaceView` (cada aba) | poucos estados e dois componentes de orquestração. Não justifica biblioteca |
 | HTTP | `axios` nos GETs, `fetch` cru no chat | o streaming precisa de `ReadableStream`, que o axios não entrega no browser |
 | Markdown | `react-markdown` + `remark-gfm` | a resposta vem em markdown com tabela e lista |
 
@@ -48,7 +48,9 @@ O dev server proxia `/api` pro backend em `:8180`. Em Docker quem faz esse papel
 
 ## Componentes
 
-Sem router. Uma tela só, porque a demo é uma conversa.
+Sem router. Uma tela só, porque a demo é uma conversa — dividida em **duas abas** que
+não se misturam: `Corpus de referência` (o documento do tenant, só leitura) e
+`Novo conteúdo` (o que for enviado durante a demo).
 
 | Componente | Papel |
 |---|---|
@@ -59,13 +61,23 @@ Sem router. Uma tela só, porque a demo é uma conversa.
 | `TopBar` | `access_level`, status do banco, nova conversa e reconexão |
 | `OfflineHero` | tela quando o Atlas não responde, com o nome do banco e o botão de reconectar |
 | `Welcome` | perguntas prontas pra clicar. **Ninguém digita durante apresentação** |
-| `DocumentsPanel` | biblioteca do tenant: arrasta um arquivo e ele entra na esteira, com progresso por chunk; marca quais documentos a recuperação enxerga; remove o que foi enviado na demo |
+| `WorkspaceView` | um espaço de trabalho isolado: thread, mensagens, documentos marcados e `scope` próprios. As duas abas montam um cada, e **as duas ficam montadas** — trocar de aba não pode matar um stream em curso nem apagar a conversa da outra. "Nova conversa" remonta só a aba ativa |
+| `DocumentsPanel` | biblioteca daquela aba (`workspace` = `base` ou `uploads`): arrasta um arquivo e ele entra na esteira, com progresso por chunk; marca quais documentos a recuperação enxerga. **Não remove nada** — o corpus base é o chão da demo e reingeri-lo custa uma hora de embedding com rate limit, então a tela não oferece esse botão; uploads somem sozinhos pelo TTL |
+
+A separação entre as abas não é cosmética e **não é o frontend que a garante**: o
+`/api/chat` recebe `scope` e resolve a lista de documentos no servidor. `sources` vazio
+quer dizer "todos os documentos daquela aba", não "todo o corpus"; a marcação do cliente
+é interseccionada com a aba. Uma aba vazia responde `stats.mode = "empty_workspace"` com
+uma mensagem própria, em vez de silenciosamente responder pelo corpus base — que é
+exatamente a mistura que as abas existem para impedir. A divisão sai do carimbo TTL
+(`metadata.expires_at` ausente = corpus base ingerido por CLI, presente = upload da
+demo), então não houve banco, índice nem campo novo.
 
 O `EngineStrip` existe por um motivo específico: **"busca híbrida" é fácil de afirmar e difícil de provar.** Com ele na tela, uma pergunta com número de norma mostra a lexical pesando, e uma pergunta conceitual mostra a vetorial pesando. O argumento se demonstra sozinho, sem eu narrar.
 
 Ele é alimentado pelo `stats` que o backend devolve, e esse `stats` carrega o funil inteiro (`numCandidates` → vetorial/lexical → únicos após RRF → sobreviventes do rerank), mais os modelos e índices usados.
 
-Se `/api/config` estiver indisponível, o app renderiza o shell offline com mensagem de recuperação. **Nunca regride pra tela de loading indefinido** — spinner infinito numa demo é pior que erro.
+Se `/api/config` estiver indisponível, o app renderiza o shell offline com mensagem de recuperação. **Nunca regride pra tela de loading indefinido** — spinner infinito numa demo é pior que erro. Antes de cair nesse shell, `getConfig()` reenvia com backoff exponencial (4 tentativas): o uvicorn leva alguns segundos importando langchain/voyage e o launcher abre o browser assim que a porta responde, então sem o retry a primeira carga mostrava offline num backend que estava só subindo.
 
 ## Streaming
 

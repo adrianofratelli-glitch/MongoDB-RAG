@@ -26,7 +26,12 @@ function expiryLabel(iso) {
   return hours >= 1 ? `expira em ${hours}h` : `expira em ${Math.max(1, Math.round(ms / 60000))}min`
 }
 
-export default function DocumentsPanel({ selected, onSelected, onCorpusChange, maxUploadMb, formats, ttlHours }) {
+/**
+ * `workspace` restricts the panel to one tab's corpus: "base" is the tenant's
+ * reference documents (read-only) and "uploads" is what was sent through the
+ * UI. The backend derives the same split from the TTL stamp.
+ */
+export default function DocumentsPanel({ selected, onSelected, onCorpusChange, maxUploadMb, formats, ttlHours, workspace = 'uploads', readOnly = false, title = 'Base de conhecimento', emptyLabel = 'Nenhum documento indexado neste tenant ainda.' }) {
   const [docs, setDocs] = useState([])
   const [job, setJob] = useState(null)
   const [error, setError] = useState(null)
@@ -36,10 +41,12 @@ export default function DocumentsPanel({ selected, onSelected, onCorpusChange, m
   const inputRef = useRef(null)
   const pollRef = useRef(null)
 
+  const inWorkspace = (list) => (list || []).filter((d) => d.workspace === workspace)
+
   const refresh = async () => {
     try {
       const data = await getDocuments()
-      setDocs(data.documents || [])
+      setDocs(inWorkspace(data.documents))
     } catch {
       setError('Não foi possível listar os documentos indexados.')
     }
@@ -47,10 +54,10 @@ export default function DocumentsPanel({ selected, onSelected, onCorpusChange, m
 
   useEffect(() => {
     getDocuments()
-      .then((data) => setDocs(data.documents || []))
+      .then((data) => setDocs((data.documents || []).filter((d) => d.workspace === workspace)))
       .catch(() => setError('Não foi possível listar os documentos indexados.'))
     return () => clearTimeout(pollRef.current)
-  }, [])
+  }, [workspace])
 
   // Ingestion is a background job: poll until it finishes. Embedding is
   // rate-limited upstream, so a large document legitimately takes minutes.
@@ -110,12 +117,13 @@ export default function DocumentsPanel({ selected, onSelected, onCorpusChange, m
         aria-expanded={open}
       >
         <Icon glyph={open ? 'ChevronDown' : 'ChevronRight'} />
-        <span>Base de conhecimento</span>
+        <span>{title}</span>
         <span className="docs-scope">{docs.length} indexado(s) · consultando {scope}</span>
       </button>
 
       {open && (
         <div className="docs-body">
+          {!readOnly && (
           <div
             className={`docs-drop${dragging ? ' dragging' : ''}`}
             onDragOver={(e) => {
@@ -156,6 +164,7 @@ export default function DocumentsPanel({ selected, onSelected, onCorpusChange, m
               }}
             />
           </div>
+          )}
 
           {job && job.status !== 'done' && (
             <div className="docs-job">
@@ -205,7 +214,7 @@ export default function DocumentsPanel({ selected, onSelected, onCorpusChange, m
               )
             })}
             {docs.length === 0 && (
-              <li className="docs-empty">Nenhum documento indexado neste tenant ainda.</li>
+              <li className="docs-empty">{emptyLabel}</li>
             )}
           </ul>
 

@@ -35,6 +35,8 @@ Documento que sobe pela tela durante uma apresentação é descartável. Ele car
 
 O truque que faz isso ser seguro: **o corpus ingerido pela CLI não recebe o campo**, e o varredor de TTL ignora documento onde o campo indexado não existe. Nada de flag `is_demo`, nada de job de limpeza, nada de filtro extra na busca — a ausência do campo já é a regra. Quem mexer nisso precisa saber: carimbar `expires_at` numa ingestão de corpus base apaga a demo de referência 24h depois, em silêncio.
 
+Essa mesma ausência acabou virando a fronteira dos dois workspaces da tela: sem `expires_at` = corpus de referência do tenant, com `expires_at` = conteúdo enviado na demo. `documents.sources_for_scope(scope)` é literalmente um `distinct("metadata.source", {"metadata.expires_at": {"$exists": ...}})`, e o `/api/chat` usa o resultado como filtro de `metadata.source`. Duas abas isoladas sem banco novo, sem índice novo e sem campo novo.
+
 ## Os dois índices de busca — `setup_db.py`, idempotente
 
 ### `vector_index` (vectorSearch)
@@ -88,7 +90,7 @@ python ingest.py caminho/anexo.pdf --nivel restrito
 # mesma esteira, pela API (o que a UI faz)
 curl -X POST localhost:8180/api/documents -F "file=@documento.pdf" -F "reset=true"
 curl localhost:8180/api/documents/jobs/<job_id>
-curl -X DELETE localhost:8180/api/documents/<source>
+curl -X DELETE localhost:8180/api/documents/<source>   # só uploads; corpus base = 403
 ```
 
 ## Conexão
@@ -142,6 +144,8 @@ Fusão vazia → devolve "Nenhum contexto encontrado." em vez de alucinar sobre 
 ## Rerank
 
 `voyage.rerank(query, documents, model="rerank-2", top_k=min(8, len(documents)))` sobre o conjunto fundido. Falhou, loga a exceção e **mantém a ordem do RRF**, copiando o score vetorial ou lexical disponível pro campo `rerank_score`. Uma API de terceiro fora do ar degrada a qualidade da resposta; não pode derrubar a resposta.
+
+As fontes que a UI recebe são deduplicadas **por chunk** — a chave é o mesmo `_id` que a fusão usa. Já foi por `(source, page)`, e isso quebrou silenciosamente no corpus Markdown: sem paginação, todo chunk carrega `page: 0`, e as oito passagens reranqueadas viravam um único cartão de fonte. O painel de fontes é metade do argumento da demo; ele precisa mostrar os oito.
 
 ## O `stats` — o funil que a tela mostra
 

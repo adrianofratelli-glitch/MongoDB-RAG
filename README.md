@@ -2,13 +2,13 @@
 
 Faça uma pergunta em linguagem natural a um documento de planejamento de 200 páginas e receba uma resposta com citações em segundos. Busca vetorial e lexical rodam em paralelo no Atlas, o RRF funde os ranqueamentos, um re-ranker escolhe as melhores passagens, e o Claude responde usando só elas — em streaming, token a token.
 
-Agnóstico de tenant por design: nenhum nome de cliente, documento ou marca vive no repositório. Um novo tenant é um `.env`, um PDF e um arquivo JSON. E, na própria tela, dá para enviar um documento novo e conversar com ele em seguida — a mesma esteira de ingestão, sem tocar em linha de comando.
+Agnóstico de tenant por design: nenhum nome de cliente, documento ou marca vive no repositório. Um novo tenant é um `.env`, um PDF e um arquivo JSON. E, na própria tela, dá para enviar um documento novo e conversar com ele em seguida — a mesma esteira de ingestão, sem tocar em linha de comando, em uma aba separada que nunca se mistura com o corpus de referência.
 
 ## A demo em 5 passos
 
-**1. Escolha um perfil de acesso e uma pergunta.** O perfil (público / restrito) é o filtro de ACL aplicado às *duas* etapas de busca, com negação por padrão.
+**1. Escolha a aba, um perfil de acesso e uma pergunta.** A aba **Corpus de referência** conversa com o documento do tenant; **Novo conteúdo** é o espaço do que for enviado na hora. O perfil (público / restrito) é o filtro de ACL aplicado às *duas* etapas de busca, com negação por padrão.
 
-![Tela inicial com o seletor de perfil de acesso e as perguntas iniciais](docs/screenshots/01-home.png)
+![Tela inicial com as duas abas de workspace, o seletor de perfil de acesso e as perguntas iniciais](docs/screenshots/01-home.png)
 
 **2. Pergunte.** A consulta vira embedding com o `voyage-3` e roda `$vectorSearch` e Atlas Search (BM25) em paralelo, cada um já filtrado por nível de acesso.
 
@@ -16,15 +16,15 @@ Agnóstico de tenant por design: nenhum nome de cliente, documento ou marca vive
 
 ![Resposta chegando em streaming com o pipeline de recuperação mostrado etapa por etapa](docs/screenshots/02-answer.png)
 
-**4. Confira as fontes.** Toda resposta carrega as passagens e páginas de onde veio, então dá para verificar em vez de confiar.
+**4. Confira as fontes.** Toda resposta carrega as passagens de onde veio — um cartão por chunk reranqueado, com o badge do motor que o trouxe (`VETORIAL`, `LÉXICO` ou os dois) e os scores `vetorial → rerank`. Dá para verificar em vez de confiar.
 
-![Passagens citadas como fonte, com os números de página](docs/screenshots/03-sources.png)
+![Painel de fontes expandido: um cartão por chunk, com os badges VETORIAL/LÉXICO e os scores vetorial → rerank](docs/screenshots/03-sources.png)
 
-**5. Envie um documento na hora.** Em **Base de conhecimento**, arraste um arquivo: ele é fatiado, embedado com `voyage-3` e indexado no mesmo banco do tenant, com barra de progresso. Marque o documento recém-enviado e a recuperação passa a rodar só sobre ele — os dois filtros de busca ganham `metadata.source` junto com o nível de acesso. Conteúdo enviado assim é descartável: expira sozinho em 24h por um índice TTL, então demos sucessivas não deixam vetores acumulados para trás.
+**5. Envie um documento na hora, em uma aba separada.** A tela tem dois espaços: **Corpus de referência** (o documento do tenant, só leitura) e **Novo conteúdo**. Na segunda aba, arraste um arquivo: ele é fatiado, embedado com `voyage-3` e indexado no mesmo banco do tenant, com barra de progresso. Cada aba tem conversa própria e só recupera os próprios documentos — o `/api/chat` resolve esse escopo no servidor, então uma resposta nunca mistura os dois corpora. Os dois filtros de busca ganham `metadata.source` junto com o nível de acesso. Conteúdo enviado assim é descartável: expira sozinho em 24h por um índice TTL, e é essa marca de TTL que separa as duas abas — sem banco novo, sem índice novo.
 
-![Painel da base de conhecimento com o upload em progresso e os documentos indexados](docs/screenshots/04-upload.png)
+![Aba Novo conteúdo: painel de upload aberto, o documento enviado com o prazo de expiração e a resposta gerada só a partir dele](docs/screenshots/04-upload.png)
 
-> Os screenshots rodam contra um tenant real; os nomes da organização e do documento foram substituídos por nomes neutros.
+> Os screenshots rodam contra um tenant real; os nomes de organização, documento, banco e identificadores citados nas respostas foram substituídos por nomes neutros no DOM antes da captura.
 
 ## Como uma pergunta é respondida
 
@@ -99,7 +99,7 @@ backend/api.py     app FastAPI (config / status / chat SSE / métricas)
 frontend/          React + Vite + LeafyGreen
 agent.py           busca híbrida + RRF + rerank, com ACL
 ingest.py          ingestão multiformato (--nivel define o nível de acesso)
-backend/documents.py  biblioteca de documentos: upload, jobs de ingestão, remoção
+backend/documents.py  biblioteca de documentos: upload, jobs de ingestão, remoção de uploads
 setup_db.py        coleções e os dois índices de busca
 config.py db.py    configuração e cliente Mongo compartilhado
 observability.py   logging estruturado + /api/metrics

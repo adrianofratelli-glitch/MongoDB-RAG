@@ -114,18 +114,20 @@ def retrieve_context(query: str, top_k: int = 15,
     collection = get_client()[DB_NAME]["documents"]
 
     embedding = _embed_query(voyage, query)
+    vector_pipeline = _vector_pipeline(embedding, top_k, levels, sources)
+    lexical_pipeline = _lexical_pipeline(query, top_k, levels, sources)
 
     # 1) Retrieve from both modalities in parallel (two independent aggregations)
     def _run_vector():
         try:
-            return list(collection.aggregate(_vector_pipeline(embedding, top_k, levels, sources)))
+            return list(collection.aggregate(vector_pipeline))
         except Exception:
             logger.exception("vector search failed — falling back to lexical-only")
             return []  # tolerant: if the vector index fails, fall back to lexical only
 
     def _run_lexical():
         try:
-            return list(collection.aggregate(_lexical_pipeline(query, top_k, levels, sources)))
+            return list(collection.aggregate(lexical_pipeline))
         except Exception:
             logger.exception("lexical search failed — falling back to vector-only")
             return []  # tolerant: if the lexical index fails, fall back to vector only
@@ -142,6 +144,7 @@ def retrieve_context(query: str, top_k: int = 15,
         for rank, r in enumerate(rows, start=1):
             key = str(r["_id"])
             entry = fused.setdefault(key, {
+                "chunk_id": key,
                 "text": r["text"], "metadata": r["metadata"],
                 "vector_score": 0.0, "search_score": 0.0,
                 "rrf": 0.0, "matched_by": set(),
@@ -177,12 +180,16 @@ def retrieve_context(query: str, top_k: int = 15,
     requested_sources = list(sources or [])
     parts = []
     sources = []
-    seen_pages: set = set()
+    # Dedupe by chunk, not by page: a Markdown corpus has no pagination, so every
+    # chunk carries page 0 and a page-keyed set collapsed all eight reranked
+    # passages into a single source card.
+    seen_chunks: set = set()
     for r in top_results:
         page = r["metadata"].get("page", "?")
         source = r["metadata"].get("source", "")
+        chunk_key = r.get("chunk_id") or (source, page, r["text"][:80])
         parts.append(f"[Página {page} | {source}]\n{r['text']}")
-        if (source, page) not in seen_pages:
+        if chunk_key not in seen_chunks:
             sources.append({
                 "page": page,
                 "source": source,
@@ -192,7 +199,7 @@ def retrieve_context(query: str, top_k: int = 15,
                 "rerank_score": r.get("rerank_score", 0),
                 "preview": r["text"][:130],
             })
-            seen_pages.add((source, page))
+            seen_chunks.add(chunk_key)
 
     stats = {
         "num_candidates": top_k * 15,        # $vectorSearch numCandidates
@@ -207,6 +214,21 @@ def retrieve_context(query: str, top_k: int = 15,
         "access_levels": levels,
         "sources": requested_sources,
         "hybrid": True,
+        "query_details": [
+            {
+                "operation": "aggregate / $vectorSearch",
+                "namespace": f"{DB_NAME}.documents",
+                "pipeline": [
+                    {"$vectorSearch": {**vector_pipeline[0]["$vectorSearch"], "queryVector": f"<{len(embedding)} floats omitidos>"}},
+                    *vector_pipeline[1:],
+                ],
+            },
+            {
+                "operation": "aggregate / $search",
+                "namespace": f"{DB_NAME}.documents",
+                "pipeline": lexical_pipeline,
+            },
+        ],
     }
 
     return "\n\n---\n\n".join(parts), sources, stats

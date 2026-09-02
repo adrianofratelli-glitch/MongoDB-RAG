@@ -105,10 +105,29 @@ def list_documents() -> list[dict]:
             "file": r.get("file"),
             "expires_at": r["expires_at"].isoformat() if r.get("expires_at") else None,
             "nivel_acesso": sorted(lvl for lvl in (r.get("nivel_acesso") or []) if lvl),
+            # Workspace tab that owns this document (see sources_for_scope).
+            "workspace": "uploads" if r.get("expires_at") else "base",
         }
         for r in rows
         if r["_id"]
     ]
+
+
+def sources_for_scope(scope: str) -> list[str] | None:
+    """Document names belonging to one workspace.
+
+    Both workspaces live in the same tenant DB and are told apart by the TTL
+    stamp: the CLI-ingested reference corpus carries no `metadata.expires_at`,
+    every UI upload carries one. `"all"` returns None — do not scope retrieval.
+    """
+    if scope == "all":
+        return None
+    exists = scope == "uploads"
+    return sorted(
+        s for s in get_client()[DB_NAME]["documents"].distinct(
+            "metadata.source", {"metadata.expires_at": {"$exists": exists}}
+        ) if s
+    )
 
 
 def is_protected(source: str) -> bool:

@@ -63,6 +63,8 @@ Toda configuração vem de env, lida por um `config.py`:
 
 Perguntas iniciais e follow-ups vêm de um `client_config.json` (gitignored, com um `.example` versionado), com defaults pt-BR.
 
+Dentro de um tenant a tela tem **dois espaços que não se misturam**: o corpus de referência (ingerido por CLI) e o conteúdo enviado durante a demo. A fronteira é o carimbo TTL — `metadata.expires_at` ausente contra presente — e quem a aplica é o backend, a partir do `scope` que a aba manda no `/api/chat`. Vale insistir: `sources` vazio significa "todos os documentos daquela aba", nunca "todo o corpus"; se fosse o frontend a montar a lista, uma aba vazia voltaria a responder pelo corpus base.
+
 Dentro de um tenant cabem vários documentos, separados por `metadata.source` na mesma coleção. Um documento novo entra por upload na própria tela — mesma esteira de chunking/embedding do CLI — e a UI escolhe quais documentos a recuperação enxerga. O upload existe pra que a PoV sirva a **qualquer** cenário: o cliente manda o documento dele na reunião e a demo continua em cima do material dele.
 
 ## Controle de acesso
@@ -100,7 +102,7 @@ Os índices de TTL nas conversas e no histórico persistido também estão aí p
 - **Não há autenticação em nenhum endpoint.**
 - `access_level` é confiado do corpo da requisição.
 - `/api/history/{thread_id}` devolve qualquer conversa pra quem souber ou adivinhar o `thread_id` (um UUIDv4 gerado no cliente).
-- **O upload e a remoção de documentos são abertos**: qualquer um que alcance a API indexa ou apaga conteúdo do tenant. Aceitável numa demo em `localhost`, inaceitável exposto.
+- **O upload e a remoção de documentos são abertos**: qualquer um que alcance a API indexa ou apaga conteúdo do tenant. Aceitável numa demo em `localhost`, inaceitável exposto. A remoção alcança só os uploads — o corpus base do tenant devolve 403 e não tem botão na UI.
 
 **Autenticação real antes de qualquer deployment que não seja demo.** Não deixa isso implícito no README — enuncia.
 
@@ -112,7 +114,7 @@ Layout Python plano na raiz, sem pacote aninhado:
 |---|---|
 | `agent.py` | pipeline de recuperação (usado pela API e pelo grafo) + `build_graph()` |
 | `backend/api.py` | app FastAPI, streaming SSE, montagem manual de mensagens |
-| `backend/documents.py` | biblioteca de documentos: upload validado, jobs de ingestão, remoção |
+| `backend/documents.py` | biblioteca de documentos: upload validado, jobs de ingestão, remoção restrita aos uploads (corpus base protegido), `sources_for_scope()` (fronteira dos dois workspaces) |
 | `ingest.py` | loader multi-formato, chunking, embedding em lotes |
 | `db.py` | `MongoClient` singleton |
 | `config.py` | configuração de tenant, toda por env |
@@ -122,7 +124,7 @@ Layout Python plano na raiz, sem pacote aninhado:
 ## Como rodar
 
 ```bash
-./run.sh              # backend :8180 + frontend :5180 — cura estado parcial, seguro re-executar
+./run.sh              # backend :8180 + frontend :5180 — espera /api/health, cura estado parcial, seguro re-executar
 ./run.sh stop
 ./run.sh status
 ```

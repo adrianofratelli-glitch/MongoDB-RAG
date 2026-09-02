@@ -56,7 +56,7 @@ export async function deleteDocument(source) {
  * Stream the chat over SSE (fetch + ReadableStream).
  * handlers: { onMeta(evt), onToken(delta), onDone(), onError(msg) }
  */
-export async function streamChat({ question, messages, threadId, accessLevel, sources }, handlers) {
+export async function streamChat({ question, messages, threadId, accessLevel, sources, scope }, handlers) {
   const { onMeta, onToken, onDone, onError } = handlers
   let res
   try {
@@ -70,8 +70,10 @@ export async function streamChat({ question, messages, threadId, accessLevel, so
         // Default-deny: restricted access must be an explicit UI choice. In a
         // production deployment this value must come from authenticated claims.
         access_level: accessLevel || 'publico',
-        // Empty means "search every indexed document".
+        // Empty means "every document of the active workspace" — the backend
+        // resolves `scope` into the source list, so a tab never reads the other.
         sources: sources || [],
+        scope: scope || 'all',
       }),
     })
   } catch {

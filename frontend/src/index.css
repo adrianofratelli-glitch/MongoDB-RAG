@@ -384,3 +384,10 @@ body::after {
 .docs-tag.base { color: var(--green, #00ED64); border-color: #00ED6455; }
 .docs-empty { justify-content: center; color: var(--sub); font-size: 12px; }
 .docs-tag.ttl { color: #3D9BFF; border-color: #3D9BFF55; }
+
+/* Workspace tabs — reference corpus vs content uploaded during the demo */
+.ws-tabs { display: flex; gap: 6px; margin: 14px 0 2px; border-bottom: 1px solid var(--border-subtle); }
+.ws-tabs button { min-height: 44px; padding: 0 16px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--text-muted); font: 600 13px var(--sans, inherit); cursor: pointer; }
+.ws-tabs button:hover { color: var(--text); }
+.ws-tabs button.active { color: var(--text); border-bottom-color: var(--green, #00ED64); }
+.ws-tabs button:focus-visible { outline: 2px solid var(--green, #00ED64); outline-offset: -2px; }

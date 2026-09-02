@@ -1,22 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import Banner from '@leafygreen-ui/banner'
-import { getConfig, getStatus, streamChat } from './api'
+import { getConfig, getStatus } from './api'
 import TopBar from './components/TopBar'
-import Welcome from './components/Welcome'
 import OfflineHero from './components/OfflineHero'
-import ChatMessage from './components/ChatMessage'
-import ChatInput from './components/ChatInput'
-import DocumentsPanel from './components/DocumentsPanel'
+import WorkspaceView from './components/WorkspaceView'
 import { C } from './theme'
-
-const uuid = () => {
-  if (crypto.randomUUID) return crypto.randomUUID()
-  const bytes = crypto.getRandomValues(new Uint8Array(16))
-  bytes[6] = (bytes[6] & 0x0f) | 0x40
-  bytes[8] = (bytes[8] & 0x3f) | 0x80
-  const hex = [...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join('')
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
-}
 
 const OFFLINE_CONFIG = {
   client_name: 'RAG PoC',
@@ -28,18 +16,41 @@ const OFFLINE_CONFIG = {
   rerank_model: 'Voyage AI',
 }
 
+/**
+ * Two isolated workspaces over the same tenant DB. The reference corpus tab is
+ * read-only; everything uploaded during a demo lands in the second tab. Neither
+ * retrieves the other's documents — the backend enforces it from `scope`.
+ */
+const TABS = [
+  {
+    id: 'base',
+    label: 'Corpus de referência',
+    panel: {
+      readOnly: true,
+      title: 'Documentos do tenant',
+      emptyLabel: 'Nenhum documento de referência indexado. Rode python ingest.py <arquivo>.',
+    },
+  },
+  {
+    id: 'uploads',
+    label: 'Novo conteúdo',
+    panel: {
+      readOnly: false,
+      title: 'Conteúdo enviado nesta demo',
+      emptyLabel: 'Nada enviado ainda — arraste um arquivo acima para indexar.',
+    },
+  },
+]
+
 export default function App() {
   const [config, setConfig] = useState(null)
   const [status, setStatus] = useState({ online: false, chunks: null })
-  const [messages, setMessages] = useState([])
-  const [streaming, setStreaming] = useState(false)
-  const [threadId, setThreadId] = useState(uuid())
   const [error, setError] = useState(null)
   const [reconnecting, setReconnecting] = useState(false)
   const [accessLevel, setAccessLevel] = useState('publico') // produção deriva isso de claims autenticadas
-  // Documentos escolhidos na biblioteca; vazio = consulta todo o corpus do tenant.
-  const [sources, setSources] = useState([])
-  const endRef = useRef(null)
+  const [tab, setTab] = useState('base')
+  // Bumped per tab by "Nova conversa"; the workspace resets on the change.
+  const [resets, setResets] = useState({ base: 0, uploads: 0 })
 
   const refreshStatus = async (force = false) => {
     try {
@@ -64,65 +75,25 @@ export default function App() {
       })
   }, [])
 
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
-
-  const send = async (question) => {
-    if (streaming) return
-    setError(null)
-    const history = messages.map(({ role, content }) => ({ role, content }))
-    setMessages((prev) => [...prev, { role: 'user', content: question }, { role: 'assistant', content: '' }])
-    setStreaming(true)
-
-    await streamChat(
-      { question, messages: history, threadId, accessLevel, sources },
-      {
-        onMeta: (evt) =>
-          setMessages((prev) => {
-            const next = [...prev]
-            next[next.length - 1] = {
-              ...next[next.length - 1],
-              stats: evt.stats,
-              sources: evt.sources,
-              elapsedMs: evt.elapsed_ms,
-              followups: evt.followups,
-            }
-            return next
-          }),
-        onToken: (delta) =>
-          setMessages((prev) => {
-            const next = [...prev]
-            next[next.length - 1] = { ...next[next.length - 1], content: next[next.length - 1].content + delta }
-            return next
-          }),
-        onDone: () => setStreaming(false),
-        onError: (msg) => {
-          setStreaming(false)
-          setMessages((prev) => prev.slice(0, -2)) // undo the user + placeholder messages
-          setError(msg)
-          refreshStatus(true)
-        },
-      },
-    )
-  }
-
   const reconnect = async () => {
     setReconnecting(true)
     await refreshStatus(true)
     setReconnecting(false)
   }
-  const newChat = () => {
-    setMessages([])
-    setThreadId(uuid())
-    setError(null)
-  }
+  const newChat = () => setResets((prev) => ({ ...prev, [tab]: prev[tab] + 1 }))
+
   if (!config) {
     return <div style={{ padding: 40, color: C.sub }}>Carregando…</div>
   }
 
-  const last = messages[messages.length - 1]
-  const showFollowups = !streaming && last?.role === 'assistant' && last.followups?.length > 0
+  // Uploaded content has no tenant title/questions of its own; the panel names
+  // the scope and the starter questions would point at the wrong corpus.
+  const uploadsConfig = {
+    ...config,
+    document_title: 'conteúdo que você enviou',
+    document_description: 'Mesma esteira do corpus de referência — chunk, voyage-3, Atlas Vector Search — sobre o documento enviado nesta aba.',
+    questions: [],
+  }
 
   return (
     <div className="app-shell" data-pov-shell>
@@ -140,38 +111,35 @@ export default function App() {
           <OfflineHero dbName={config.db_name} onReconnect={reconnect} reconnecting={reconnecting} />
         ) : (
           <>
-            <DocumentsPanel
-              selected={sources}
-              onSelected={setSources}
-              onCorpusChange={() => refreshStatus(true)}
-              maxUploadMb={config.max_upload_mb}
-              formats={config.supported_formats}
-              ttlHours={config.upload_ttl_hours}
-            />
+            <div className="ws-tabs" role="tablist" aria-label="Espaços de trabalho">
+              {TABS.map((t) => (
+                <button
+                  key={t.id}
+                  role="tab"
+                  aria-selected={tab === t.id}
+                  className={tab === t.id ? 'active' : undefined}
+                  onClick={() => setTab(t.id)}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
 
-            {messages.length === 0 ? (
-              <Welcome config={config} onPick={send} />
-            ) : (
-              messages.map((m, i) => <ChatMessage key={i} msg={m} />)
-            )}
-
-            {showFollowups && (
-              <div style={{ marginTop: 6 }}>
-                <div className="sb-section-label" style={{ marginLeft: 0 }}>Perguntas relacionadas</div>
-                <div className="sugg-grid">
-                  {last.followups.map((fq, i) => (
-                    <button key={i} className="sugg-card" onClick={() => send(fq)}>
-                      <span className="sugg-num">Continuar {String(i + 1).padStart(2, '0')}</span>
-                      <span className="sugg-text">{fq}</span>
-                      <span className="sugg-arrow">→</span>
-                    </button>
-                  ))}
-                </div>
+            {/* Both stay mounted: switching tabs must not drop a running stream
+                or the conversation already on screen. */}
+            {TABS.map((t) => (
+              <div key={t.id} role="tabpanel" hidden={tab !== t.id}>
+                <WorkspaceView
+                  /* Remount on "Nova conversa": fresh thread and history. */
+                  key={`${t.id}-${resets[t.id]}`}
+                  config={t.id === 'uploads' ? uploadsConfig : config}
+                  scope={t.id}
+                  panel={{ ...t.panel, subject: t.id === 'uploads' ? uploadsConfig.document_title : config.document_title }}
+                  accessLevel={accessLevel}
+                  onStatusRefresh={() => refreshStatus(true)}
+                />
               </div>
-            )}
-
-            <div ref={endRef} />
-            <ChatInput placeholder={`Pergunte sobre ${sources.length ? sources.join(', ') : config.document_title}…`} disabled={streaming} onSend={send} />
+            ))}
           </>
         )}
       </main>
