@@ -9,6 +9,7 @@ import os
 from threading import Lock
 
 from pymongo import MongoClient
+from pymongo.errors import DuplicateKeyError
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -49,9 +50,16 @@ def verify_tenant_identity(db_name: str, client_id: str) -> None:
     col = get_client()[db_name]["_meta"]
     existing = col.find_one({"_id": "tenant_identity"})
     if existing is None:
-        col.insert_one({"_id": "tenant_identity", "client_id": client_id})
-        logger.info("tenant identity stamped db=%s client_id=%s", db_name, client_id)
-        return
+        try:
+            col.insert_one({"_id": "tenant_identity", "client_id": client_id})
+        except DuplicateKeyError:
+            # Another process stamped the existing unique _id during startup.
+            existing = col.find_one({"_id": "tenant_identity"})
+            if existing is None:
+                raise
+        else:
+            logger.info("tenant identity stamped db=%s client_id=%s", db_name, client_id)
+            return
     if existing.get("client_id") != client_id:
         raise TenantIdentityMismatch(
             f"Banco '{db_name}' foi identificado anteriormente como tenant "

@@ -48,3 +48,7 @@ Auditoria do ambiente instalado, não de uma resolução limpa do manifesto; fer
 Varredura por padrões de chaves privadas, chaves Anthropic/AWS e URI MongoDB autenticada no histórico Git local alcançável: nenhuma credencial real confirmada; matches encontrados eram placeholders conhecidos. Limite: não é scanner de entropia, não cobre objetos inacessíveis, texto em screenshots nem logs externos.
 
 Nenhum import/referência estática a `_shared/grove_client.py` foi encontrado nesta PoV. Configuração própria de gateway/ambiente não constitui dependência de código desse módulo. `_shared` permaneceu intocado; consumidores externos/dinâmicos não são garantidos por busca estática. Relatório separado: `../REVIEW_SHARED.md`.
+
+## Segunda rodada — melhorias adicionais
+
+Inicialização concorrente de tenant_identity agora captura DuplicateKeyError e verifica a identidade vencedora; tenant diferente continua falhando fechado. Mesmo documento e índice _id existentes. 45 testes passaram, incluindo disputa com identidade igual/diferente. Merge continua bloqueado pelo visible-change pendente.
