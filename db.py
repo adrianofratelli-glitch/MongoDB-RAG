@@ -6,6 +6,7 @@ latency to every call, so always reuse this instance.
 """
 import logging
 import os
+from threading import Lock
 
 from pymongo import MongoClient
 from dotenv import load_dotenv
@@ -15,12 +16,14 @@ load_dotenv()
 logger = logging.getLogger("rag_poc.db")
 
 _client: MongoClient | None = None
+_client_lock = Lock()
 
 
 def get_client() -> MongoClient:
     global _client
-    if _client is None:
-        _client = MongoClient(os.environ["MONGO_URI"], serverSelectionTimeoutMS=3500)
+    with _client_lock:
+        if _client is None:
+            _client = MongoClient(os.environ["MONGO_URI"], serverSelectionTimeoutMS=3500)
     return _client
 
 
