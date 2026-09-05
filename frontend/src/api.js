@@ -18,7 +18,7 @@ export async function getConfig({ retries = 4, delayMs = 800 } = {}) {
 }
 
 export async function getStatus(force = false) {
-  const { data } = await axios.get('/api/status', { params: force ? { force: true } : {} })
+  const { data } = await axios.get('/api/status', { params: force ? { force: true } : {}, timeout: 5000 })
   return data
 }
 

@@ -77,8 +77,16 @@ export default function App() {
 
   const reconnect = async () => {
     setReconnecting(true)
-    await refreshStatus(true)
-    setReconnecting(false)
+    try {
+      const cfg = await getConfig({ retries: 0 })
+      setConfig(cfg)
+      await refreshStatus(true)
+      setError(null)
+    } catch {
+      setError('A API não respondeu. Inicie o backend e tente reconectar.')
+    } finally {
+      setReconnecting(false)
+    }
   }
   const newChat = () => setResets((prev) => ({ ...prev, [tab]: prev[tab] + 1 }))
 
