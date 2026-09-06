@@ -64,3 +64,5 @@ Esta seção atualiza o estado dos achados históricos acima.
 - pip-audit atual: Nenhum advisory de Python encontrado no ambiente auditado.
 - Ambiente: pip 26.2.1 nos ambientes que possuem pip; FinScope mantém uv sem pip. Essa atualização local não altera arquivos de dependências das PoVs.
 - `_shared`: nenhum importador estático comprovado nesta PoV; apenas smoke consome o helper no inventário.
+
+Compatibilidade adicional: `pip check` detectou `langgraph-checkpoint-mongodb 0.4.0` exigindo `pymongo<4.17`, enquanto o ambiente já possui `pymongo 4.17.0`. Os patches desta rodada não alteraram esses pacotes. Proposta: resolver versões de driver/checkpointer conjuntamente e testar checkpoint real; evita combinação fora do contrato, mas envolve core/downgrade e requer aprovação. Os 45 testes locais não eliminam essa pendência.
