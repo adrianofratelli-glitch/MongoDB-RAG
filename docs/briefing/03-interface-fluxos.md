@@ -121,3 +121,8 @@ trocados. Cortar depois não resolve.
 - `setup_db.py` rodado e os dois índices `READY`.
 - Uma pergunta de aquecimento, pra pagar o cold start do embedding e da geração fora da demo.
 - Seletor de acesso em `publico`, pra que o passo 4 tenha contraste.
+
+
+## Comportamento de resiliência integrado
+
+Tratar EOF sem done como erro, conclusão única, CRLF e falhas de leitura; cancelar no unmount, impedir duplicação e limitar chat a 180 s. Upload 120 s e operações auxiliares 30 s. A implementação vigente está em `main`; consulte o estado atual de `../../REVIEW.md` para validação e propostas não aplicadas.
