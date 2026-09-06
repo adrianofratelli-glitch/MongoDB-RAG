@@ -52,3 +52,15 @@ Nenhum import/referência estática a `_shared/grove_client.py` foi encontrado n
 ## Segunda rodada — melhorias adicionais
 
 Inicialização concorrente de tenant_identity agora captura DuplicateKeyError e verifica a identidade vencedora; tenant diferente continua falhando fechado. Mesmo documento e índice _id existentes. 45 testes passaram, incluindo disputa com identidade igual/diferente. Merge continua bloqueado pelo visible-change pendente.
+
+
+## Fechamento final — 2026-09-05
+
+Esta seção atualiza o estado dos achados históricos acima.
+
+- Aplicado/reavaliado: Commit 342c355 validado e integrado via fast-forward até 30b3139; pisos aiohttp ≥3.14.3,<4 e pypdf ≥6.16.1,<7 adicionados nesta rodada.
+- Validação: 45 testes; build; backend desconectado/reconectado por interceptação HTTP, erro visível e botão utilizável, erro limpo na recuperação, navegação funcional; npm/pip-audit sem achados.
+- Propostas e limites restantes: Race de identidade do tenant já corrigida na revisão integrada. ACL da UI não é autenticação: propor identidade verificada no backend antes de exposição multiusuário; melhora isolamento, mas altera fluxo/contrato e exige aprovação. Sem mudança de corpus/schema/tenant.
+- pip-audit atual: Nenhum advisory de Python encontrado no ambiente auditado.
+- Ambiente: pip 26.2.1 nos ambientes que possuem pip; FinScope mantém uv sem pip. Essa atualização local não altera arquivos de dependências das PoVs.
+- `_shared`: nenhum importador estático comprovado nesta PoV; apenas smoke consome o helper no inventário.
