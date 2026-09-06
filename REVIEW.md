@@ -68,3 +68,13 @@ Esta seção atualiza o estado dos achados históricos acima.
 Compatibilidade adicional: `pip check` detectou `langgraph-checkpoint-mongodb 0.4.0` exigindo `pymongo<4.17`, enquanto o ambiente já possui `pymongo 4.17.0`. Os patches desta rodada não alteraram esses pacotes. Proposta: resolver versões de driver/checkpointer conjuntamente e testar checkpoint real; evita combinação fora do contrato, mas envolve core/downgrade e requer aprovação. Os 45 testes locais não eliminam essa pendência.
 
 Validação complementar (2026-09-06), após religamento do cluster: ping e identidade existente OK. Backend temporário real retornou HTTP 200 com Atlas online. Bloqueio HTTP apenas no navegador mostrou erro; ao liberar a conexão, botão recuperou a tela, abas continuaram responsivas e houve zero pageerror. Sem fixtures de status nesta confirmação; nenhum upload/chat/escrita de dataset, restart do daemon ou stress do portal.
+
+
+## Homologação de resiliência e UI
+
+- Melhoria: Tratar EOF sem done como erro, conclusão única, CRLF e falhas de leitura; cancelar no unmount, impedir duplicação e limitar chat a 180 s. Upload 120 s e operações auxiliares 30 s.
+- Isolamento: `review/codex-homologation`, baseada no HEAD `02da300`. Mudança de estado observável; aguardando aprovação individual, sem merge.
+- Validação: build passou; UI offline em 1440×1000, 768×1024 e 360×800 sem pageerror nem overflow horizontal; skip link transfere foco. 5 testes novos de transporte/polling neste repositório. As suítes locais anteriores foram reexecutadas; resultados consolidados no vault PoVs-Handoffs.
+- Limite: teste offline/fixture não certifica cenário real completo nem ausência de bugs. Não houve alteração de schema, dataset ou dependência core.
+- Propostas preservadas: Race de identidade do tenant já corrigida na revisão integrada. ACL da UI não é autenticação: propor identidade verificada no backend antes de exposição multiusuário; melhora isolamento, mas altera fluxo/contrato e exige aprovação. Sem mudança de corpus/schema/tenant.
+- `_shared` e daemon do portal não foram alterados nesta rodada.

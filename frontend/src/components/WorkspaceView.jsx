@@ -28,48 +28,57 @@ export default function WorkspaceView({ config, scope, accessLevel, onStatusRefr
   const [error, setError] = useState(null)
   const [sources, setSources] = useState([])
   const endRef = useRef(null)
+  const requestRef = useRef(null)
+  useEffect(() => () => requestRef.current?.abort(), [])
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
   const send = async (question) => {
-    if (streaming) return
+    if (requestRef.current) return
+    const controller = new AbortController()
+    requestRef.current = controller
     setError(null)
     const history = messages.map(({ role, content }) => ({ role, content }))
     setMessages((prev) => [...prev, { role: 'user', content: question }, { role: 'assistant', content: '' }])
     setStreaming(true)
 
-    await streamChat(
-      { question, messages: history, threadId, accessLevel, sources, scope },
-      {
-        onMeta: (evt) =>
-          setMessages((prev) => {
-            const next = [...prev]
-            next[next.length - 1] = {
-              ...next[next.length - 1],
-              stats: evt.stats,
-              sources: evt.sources,
-              elapsedMs: evt.elapsed_ms,
-              followups: evt.followups,
-            }
-            return next
-          }),
-        onToken: (delta) =>
-          setMessages((prev) => {
-            const next = [...prev]
-            next[next.length - 1] = { ...next[next.length - 1], content: next[next.length - 1].content + delta }
-            return next
-          }),
-        onDone: () => setStreaming(false),
-        onError: (msg) => {
-          setStreaming(false)
-          setMessages((prev) => prev.slice(0, -2)) // undo the user + placeholder messages
-          setError(msg)
-          onStatusRefresh?.()
+    try {
+      await streamChat(
+        { question, messages: history, threadId, accessLevel, sources, scope, signal: controller.signal },
+        {
+          onMeta: (evt) =>
+            setMessages((prev) => {
+              const next = [...prev]
+              next[next.length - 1] = {
+                ...next[next.length - 1],
+                stats: evt.stats,
+                sources: evt.sources,
+                elapsedMs: evt.elapsed_ms,
+                followups: evt.followups,
+              }
+              return next
+            }),
+          onToken: (delta) =>
+            setMessages((prev) => {
+              const next = [...prev]
+              next[next.length - 1] = { ...next[next.length - 1], content: next[next.length - 1].content + delta }
+              return next
+            }),
+          onDone: () => setStreaming(false),
+          onError: (msg) => {
+            setStreaming(false)
+            setMessages((prev) => prev.slice(0, -2)) // undo the user + placeholder messages
+            setError(msg)
+            onStatusRefresh?.()
+          },
         },
-      },
-    )
+      )
+    } finally {
+      if (requestRef.current === controller) requestRef.current = null
+      if (!controller.signal.aborted) setStreaming(false)
+    }
   }
 
   const last = messages[messages.length - 1]
