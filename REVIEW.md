@@ -66,3 +66,5 @@ Esta seção atualiza o estado dos achados históricos acima.
 - `_shared`: nenhum importador estático comprovado nesta PoV; apenas smoke consome o helper no inventário.
 
 Compatibilidade adicional: `pip check` detectou `langgraph-checkpoint-mongodb 0.4.0` exigindo `pymongo<4.17`, enquanto o ambiente já possui `pymongo 4.17.0`. Os patches desta rodada não alteraram esses pacotes. Proposta: resolver versões de driver/checkpointer conjuntamente e testar checkpoint real; evita combinação fora do contrato, mas envolve core/downgrade e requer aprovação. Os 45 testes locais não eliminam essa pendência.
+
+Validação complementar (2026-09-06), após religamento do cluster: ping e identidade existente OK. Backend temporário real retornou HTTP 200 com Atlas online. Bloqueio HTTP apenas no navegador mostrou erro; ao liberar a conexão, botão recuperou a tela, abas continuaram responsivas e houve zero pageerror. Sem fixtures de status nesta confirmação; nenhum upload/chat/escrita de dataset, restart do daemon ou stress do portal.
